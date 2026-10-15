@@ -42,7 +42,7 @@ The inspector is the trust anchor: escrow refuses money for anything they have n
 | INSP-3 | 🟡 | **Inspector management screen** for the registry admin: add and remove inspectors (`add_inspector` / `remove_inspector`). | new admin page, `chain.py` | Adding an inspector shows the transaction; a removed inspector is refused by the contract |
 | INSP-4 | 🟡 | **Calibration samples:** occasional known-grade lots to measure how consistently inspectors grade. | new DocType + report | A report shows each inspector's agreement rate |
 | INSP-5 | 🔴 | **Quorum inspection** for high-value lots: N of M inspectors must pass. | `contracts/lot_registry` | Contract tests for quorum reached / not reached / duplicate signer |
-| INSP-6 | 🟡 | **Offline inspection with ODK.** Inspectors fill an ODK form in the field without a connection; the submission becomes the inspection record and is signed when it syncs. See [docs/references.md](docs/references.md). | new ODK form, `trade_api.py` import endpoint | An inspection captured offline is signed on-chain after sync, with the same digest checks |
+| INSP-6 | ✅ | **Done:** offline inspection with ODK: form, Central sync and an import on the Inspector screen; the report digest covers the original submission. See [odk/README.md](odk/README.md). Follow-up: map each ODK user to their own inspector key. | `odk/`, `odk.py` | — |
 
 ## 3 · Buyer and escrow — `/trade/buy`
 

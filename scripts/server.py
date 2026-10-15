@@ -880,7 +880,7 @@ class AXKHandler(http.server.SimpleHTTPRequestHandler):
           </dl>
         </div>
         <div class="xt-card"><div class="xt-card-head"><h2>Contracts & Evidence</h2></div>
-          <p class="xt-muted">Offline simulation: no contract was called and nothing here is on Stellar testnet. Run <code>make run-frappe</code> for the real flow.</p>
+          <p class="xt-note">Offline simulation: no contract was called and nothing here is on Stellar testnet. Run <code>make run-frappe</code> for the real flow.</p>
         </div>
         <div class="xt-card xt-qr">
           <div>{qr_svg_html}</div>

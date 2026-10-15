@@ -362,10 +362,46 @@
           { label: "Result", get: function (r) { return pill(r.passed ? "Approved" : "Rejected"); } },
           { label: "Reason", get: function (r) { return r.passed ? "" : (r.reject_reason || ""); } },
           { label: "Signed", get: function (r) { return when(r.inspected_at); } },
-        ], done, function (r) { location.href = lotLink(r); }, "You have not signed any inspections yet.")));
+        ], done, function (r) { location.href = lotLink(r); }, "You have not signed any inspections yet.")),
+      odkCard());
 
     inspectKeys.queue = queue;
     inspectKeys.rerender = function () { renderInspect(data, personas); };
+  }
+
+  // Offline inspection (roadmap INSP-6): a submission of odk/axk_inspection.xlsx filled in ODK Collect without
+  // a connection. The server signs it like a screen inspection and hashes the original submission into the report.
+  function odkCard() {
+    var card = el("div", { class: "xt-card xt-section-gap" },
+      el("div", { class: "xt-card-head" }, el("div", {}, el("h2", { text: "Import an offline inspection (ODK)" }),
+        el("p", { text: "Inspected without a connection? Fill the AXK inspection form in ODK Collect, then import the submission here. It is signed once, like an inspection made on this screen, and its digest covers the original field submission." }))));
+    if (isSim()) {
+      card.append(el("p", { class: "xt-note", text: "Not available in the offline simulation. Run make run-frappe." }));
+      return card;
+    }
+    var file = el("input", { id: "odk-file", type: "file", accept: ".xml,application/xml,text/xml", class: "xt-input" });
+    var go = el("button", { class: "xt-btn", type: "button", text: "Import and sign" });
+    go.addEventListener("click", function () {
+      var f = file.files && file.files[0];
+      if (!f) { toast("Choose the submission XML file first.", true); return; }
+      go.disabled = true;
+      var headers = { Accept: "application/json", "Content-Type": "application/xml" };
+      if (csrf()) headers["X-Frappe-CSRF-Token"] = csrf();
+      var send = f.text().then(function (xml) {
+        return fetch("/api/method/axk_capstone.odk.import_submission", { method: "POST", headers: headers, body: xml });
+      }).then(function (r) {
+        return r.json().catch(function () { return {}; }).then(function (j) {
+          if (!r.ok) throw new Error(serverMessage(j, r.status));
+          return j.message;
+        });
+      });
+      withBusy("Signing the field inspection", "The ODK submission is checked and recorded against the lot in the registry. This can only happen once.", send)
+        .then(function (lot) { txToast(lot.lot_ref + (lot.passed ? " passed (from ODK)." : " rejected (from ODK)."), lot, 1); return refresh(); })
+        .catch(fail).finally(function () { go.disabled = false; });
+    });
+    card.append(el("div", { class: "xt-row" }, field("Submission file (.xml)", file), el("div", { style: "align-self:end" }, go)),
+      el("p", { class: "xt-note" }, "Get the form: ", el("a", { href: "https://github.com/tejirijesse/axk-open-source-capstone/tree/main/odk", target: "_blank", rel: "noopener", text: "odk/axk_inspection.xlsx" }), " · scan the lot's QR code to fill the reference."));
+    return card;
   }
 
   function inspectionForm(l) {

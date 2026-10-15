@@ -76,7 +76,7 @@ Full schematic, message sequence, state machines and data model: [docs/architect
 | Role | Screen | What happens on-chain |
 |---|---|---|
 | Cooperative | `/trade/coop` | Registers agricultural lots: commits SHA-256 digest of lot record to **lot registry** bound to cooperative address |
-| Inspector | `/trade/inspect` | Physical & lab grading queue: signs immutable pass/reject attestation with grade, moisture and sample notes |
+| Inspector | `/trade/inspect` | Physical & lab grading queue: signs immutable pass/reject attestation with grade, moisture and sample notes; imports inspections captured offline in ODK |
 | Logistics | `/trade/logistics` | Dispatch: driver, vehicle plate and container seal; the waybill digest is attested (verifier key) |
 | Port / Terminal | `/trade/port` | Gate-in: seal checked against the waybill (application), customs reference; the port receipt digest is attested (verifier key) |
 | Buyer | `/trade/buy` | Escrow & settlement: funds smart-contract escrow, confirms delivery release, triggers **splitter** (40/40/20 member payout) and final **attestation** |
@@ -100,6 +100,7 @@ The five operational roles represent the practical core of AXK's physical and fi
 - [Contract reference and design rationale](contracts/README.md)
 - [Testnet deployments and what was exercised on-chain](docs/deployments.md)
 - [GS1 EPCIS 2.0 export: every lot's history in the supply-chain standard](docs/epcis.md)
+- [Offline inspection with ODK](odk/README.md)
 - [Reference projects: open standards and open-source projects AXK learns from](docs/references.md)
 
 ## Tech stack
@@ -122,15 +123,18 @@ frappe_app/axk_capstone/
   axk_capstone/trade_api.py    role endpoints and the access guard
   axk_capstone/verify.py       public lookup, PII-free fields, QR
   axk_capstone/epcis.py        GS1 EPCIS 2.0 export of a lot's public history
+  axk_capstone/odk.py          imports inspections captured offline in ODK
   axk_capstone/stellar_live.py Soroban RPC event reader for the explorer
   axk_capstone/www/            /trade/*, /trace/*, /chain pages
   axk_capstone/public/         axk.css, trade.js, chain.css, chain.js
+odk/                  ODK inspection form (offline field capture) and ODK Central sync
 axk_seed/             synthetic five-year dataset + importer (labelled synthetic everywhere)
 scripts/demo.sh       deploys fresh contracts and runs one verified trade on testnet
 scripts/run-frappe.sh starts the local Frappe stack
 scripts/server.py     offline simulation of the screens (no blockchain)
 scripts/test_trade.py end-to-end lifecycle and failure-mode tests
 scripts/test_epcis.py GS1 EPCIS export tests (validated against the official schema)
+scripts/test_odk.py   ODK form, importer and Central-sync tests
 docs/                 architecture, security, deployments, references, history dataset, screenshots
 .github/              issue and pull request templates
 ROADMAP.md            step-by-step contribution tracks for every stage of the trade

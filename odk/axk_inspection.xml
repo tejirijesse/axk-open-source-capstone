@@ -1,0 +1,135 @@
+<?xml version="1.0"?>
+<h:html xmlns="http://www.w3.org/2002/xforms" xmlns:h="http://www.w3.org/1999/xhtml" xmlns:ev="http://www.w3.org/2001/xml-events" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:jr="http://openrosa.org/javarosa" xmlns:orx="http://openrosa.org/xforms" xmlns:odk="http://www.opendatakit.org/xforms">
+  <h:head>
+    <h:title>AXK lot inspection</h:title>
+    <model odk:xforms-version="1.0.0">
+      <instance>
+        <data id="axk_inspection" version="2026101501">
+          <start/>
+          <end/>
+          <lot_qr/>
+          <lot_ref/>
+          <result/>
+          <grade/>
+          <quantity_kg/>
+          <moisture_pct/>
+          <reject_reason/>
+          <notes/>
+          <meta>
+            <instanceID/>
+            <instanceName/>
+          </meta>
+        </data>
+      </instance>
+      <instance id="result">
+        <root>
+          <item>
+            <name>pass</name>
+            <label>Pass</label>
+          </item>
+          <item>
+            <name>reject</name>
+            <label>Reject</label>
+          </item>
+        </root>
+      </instance>
+      <instance id="grade">
+        <root>
+          <item>
+            <name>A</name>
+            <label>A</label>
+          </item>
+          <item>
+            <name>B</name>
+            <label>B</label>
+          </item>
+          <item>
+            <name>C</name>
+            <label>C</label>
+          </item>
+        </root>
+      </instance>
+      <instance id="reject_reason">
+        <root>
+          <item>
+            <name>moisture</name>
+            <label>Moisture above tolerance</label>
+          </item>
+          <item>
+            <name>weight</name>
+            <label>Weight below declared</label>
+          </item>
+          <item>
+            <name>foreign_matter</name>
+            <label>Foreign matter or defects</label>
+          </item>
+          <item>
+            <name>grade</name>
+            <label>Grade below declared</label>
+          </item>
+          <item>
+            <name>pests</name>
+            <label>Pest or mould damage</label>
+          </item>
+          <item>
+            <name>documents</name>
+            <label>Documents missing or inconsistent</label>
+          </item>
+        </root>
+      </instance>
+      <bind nodeset="/data/start" jr:preload="timestamp" type="dateTime" jr:preloadParams="start"/>
+      <bind nodeset="/data/end" jr:preload="timestamp" type="dateTime" jr:preloadParams="end"/>
+      <bind nodeset="/data/lot_qr" type="barcode"/>
+      <bind nodeset="/data/lot_ref" type="string" required="true()" relevant=" /data/lot_qr  = ''" constraint="string-length(.) &gt;= 4" jr:constraintMsg="Enter the full lot reference"/>
+      <bind nodeset="/data/result" type="string" required="true()"/>
+      <bind nodeset="/data/grade" type="string" required="true()"/>
+      <bind nodeset="/data/quantity_kg" type="decimal" required="true()" constraint=". &gt; 0" jr:constraintMsg="Quantity must be more than 0 kg"/>
+      <bind nodeset="/data/moisture_pct" type="decimal" required="true()" constraint=". &gt;= 0 and . &lt;= 40" jr:constraintMsg="Moisture must be between 0 and 40%"/>
+      <bind nodeset="/data/reject_reason" type="string" required="true()" relevant=" /data/result  = 'reject'"/>
+      <bind nodeset="/data/notes" type="string"/>
+      <bind nodeset="/data/meta/instanceID" type="string" readonly="true()" jr:preload="uid"/>
+      <bind nodeset="/data/meta/instanceName" type="string" calculate="concat('Inspection ',  /data/lot_ref ,  /data/lot_qr )"/>
+    </model>
+  </h:head>
+  <h:body>
+    <input ref="/data/lot_qr">
+      <label>Scan the lot's QR code</label>
+      <hint>From the lot's trace page or paperwork. Skip to type the reference.</hint>
+    </input>
+    <input ref="/data/lot_ref">
+      <label>Lot reference</label>
+      <hint>For example AXK-KGL-COFFEE-20261015-0001</hint>
+    </input>
+    <select1 ref="/data/result">
+      <label>Inspection result</label>
+      <itemset nodeset="instance('result')/root/item">
+        <value ref="name"/>
+        <label ref="label"/>
+      </itemset>
+    </select1>
+    <select1 ref="/data/grade">
+      <label>Measured grade</label>
+      <itemset nodeset="instance('grade')/root/item">
+        <value ref="name"/>
+        <label ref="label"/>
+      </itemset>
+    </select1>
+    <input ref="/data/quantity_kg">
+      <label>Measured quantity (kg)</label>
+    </input>
+    <input ref="/data/moisture_pct">
+      <label>Moisture (%)</label>
+    </input>
+    <select1 ref="/data/reject_reason">
+      <label>Reason for rejection</label>
+      <itemset nodeset="instance('reject_reason')/root/item">
+        <value ref="name"/>
+        <label ref="label"/>
+      </itemset>
+    </select1>
+    <input ref="/data/notes">
+      <label>Notes</label>
+      <hint>Sample notes. Do not record farmers' personal details.</hint>
+    </input>
+  </h:body>
+</h:html>
