@@ -80,7 +80,7 @@ Full schematic, message sequence, state machines and data model: [docs/architect
 | Logistics | `/trade/logistics` | Dispatch: driver, vehicle plate and container seal; the waybill digest is attested (verifier key) |
 | Port / Terminal | `/trade/port` | Gate-in: seal checked against the waybill (application), customs reference; the port receipt digest is attested (verifier key) |
 | Buyer | `/trade/buy` | Escrow & settlement: funds smart-contract escrow, confirms delivery release, triggers **splitter** (40/40/20 member payout) and final **attestation** |
-| Anyone | `/trace` | Public verification: look up by reference, hash or scan QR code; checks the lot, waybill, port receipt and settlement digests; no personal data |
+| Anyone | `/trace` | Public verification: look up by reference, hash or scan QR code; checks the lot, waybill, port receipt and settlement digests; no personal data; download the lot as a GS1 EPCIS 2.0 document |
 | Anyone | `/chain` | Chain Explorer: live Stellar testnet money flow, custody milestones, in-browser hash-chain verifier, and a synthetic 5-year history |
 
 The five operational roles represent the practical core of AXK's physical and financial cross-border trade workflow.
@@ -99,6 +99,7 @@ The five operational roles represent the practical core of AXK's physical and fi
 - [Security: roles, 14 contract guarantees and the test that pins each, application controls, known limits](docs/security.md)
 - [Contract reference and design rationale](contracts/README.md)
 - [Testnet deployments and what was exercised on-chain](docs/deployments.md)
+- [GS1 EPCIS 2.0 export: every lot's history in the supply-chain standard](docs/epcis.md)
 - [Reference projects: open standards and open-source projects AXK learns from](docs/references.md)
 
 ## Tech stack
@@ -120,6 +121,7 @@ frappe_app/axk_capstone/
   axk_capstone/chain.py        custodial signer: every contract call, argument lists, no shell
   axk_capstone/trade_api.py    role endpoints and the access guard
   axk_capstone/verify.py       public lookup, PII-free fields, QR
+  axk_capstone/epcis.py        GS1 EPCIS 2.0 export of a lot's public history
   axk_capstone/stellar_live.py Soroban RPC event reader for the explorer
   axk_capstone/www/            /trade/*, /trace/*, /chain pages
   axk_capstone/public/         axk.css, trade.js, chain.css, chain.js
@@ -128,6 +130,7 @@ scripts/demo.sh       deploys fresh contracts and runs one verified trade on tes
 scripts/run-frappe.sh starts the local Frappe stack
 scripts/server.py     offline simulation of the screens (no blockchain)
 scripts/test_trade.py end-to-end lifecycle and failure-mode tests
+scripts/test_epcis.py GS1 EPCIS export tests (validated against the official schema)
 docs/                 architecture, security, deployments, references, history dataset, screenshots
 .github/              issue and pull request templates
 ROADMAP.md            step-by-step contribution tracks for every stage of the trade

@@ -92,7 +92,7 @@ supply chains most often break, so this track has the most room to grow.
 | PUB-3 | 🟡 | **"Check a document" on `/trace`:** drop a record file; the browser hashes it and compares with the on-chain digest. | `www/trace/lot.html`, small JS | A matching file shows ✓; an edited file shows ✕ |
 | PUB-4 | 🟡 | **Open history dataset:** move the optional five-year history into `axk_capstone`'s own DocTypes so it no longer depends on AXK's private platform app. See [docs/history-dataset.md](docs/history-dataset.md). | `axk_seed/`, `api.py`, new DocTypes | `make seed` works on a plain Frappe site |
 | PUB-5 | 🟡 | **Event indexer:** store contract events so the explorer's history outlives the RPC's ~7-day window. | `stellar_live.py`, new DocType + scheduled job | The explorer shows events older than a week |
-| PUB-6 | 🟡 | **Export lots as GS1 EPCIS 2.0 events** (commissioning, inspection, shipping, receiving), so other supply-chain systems can read AXK records. See [docs/references.md](docs/references.md). | new `epcis.py`, `/trace` download | A lot downloads as valid EPCIS 2.0 JSON-LD that an EPCIS tool (e.g. openEPCIS) accepts |
+| PUB-6 | ✅ | **Done:** export lots as GS1 EPCIS 2.0 events. See [docs/epcis.md](docs/epcis.md). Follow-ups: GS1 identifiers (SGTIN/GLN) for cooperatives with a GS1 prefix; push events to an external EPCIS repository. | `epcis.py`, `/trace/lot` | — |
 
 ## 8 · Platform and developer experience
 
