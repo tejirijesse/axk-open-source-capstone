@@ -128,10 +128,14 @@ def personas():
     out = []
     for key in ("coop", "inspector", "logistics", "port", "buyer"):
         p = chain.PERSONAS[key]
-        try:
-            bal = chain.balance_rwf(key)
-        except Exception:
-            bal = None
+        bal = None
+        # Only the cooperative and the buyer hold the RWF token. Asking testnet for the others' balances
+        # always fails, slowly, and made the Logistics and Port screens take a minute to open.
+        if key in chain.TOKEN_HOLDERS:
+            try:
+                bal = chain.balance_rwf(key)
+            except Exception:
+                bal = None
         out.append({"key": key, "name": p["name"], "role": p["role"], "address": chain.address(key), "rwf": bal})
     return out
 

@@ -108,7 +108,9 @@ def address(persona):
     return out.strip()
 
 
-BALANCE_TTL = 20
+# Balances are re-read after every transaction (forget_balances), so the cache only has to cover page loads.
+BALANCE_TTL = 120
+TOKEN_HOLDERS = ("coop", "buyer")
 
 
 def balance_rwf(persona):
