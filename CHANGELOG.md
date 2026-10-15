@@ -4,6 +4,13 @@ All notable changes to this project are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project uses
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+- `docs/references.md`: open standards and open-source projects AXK learns from (GS1 EPCIS, farmOS,
+  Open Food Network, ODK, OpenLMIS, Mojaloop).
+- Roadmap items INSP-6 (offline inspection with ODK), SET-3 (Mojaloop payout study) and PUB-6 (GS1 EPCIS export).
+
 ## [0.1.0] - 2026-10-15
 
 First public release.
