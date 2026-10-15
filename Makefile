@@ -75,5 +75,5 @@ run-frappe:      ## full stack on Stellar testnet (http://localhost:8000)
 	AXK_BENCH=$(BENCH) ./scripts/run-frappe.sh
 
 zip:             ## package the repository for submission (tracked files only)
-	git archive --format=zip --prefix=axk-open-source-capstone/ -o axk-capstone-submission.zip HEAD
-	@ls -lh axk-capstone-submission.zip
+	git archive --format=zip --prefix=axk-open-source-capstone/ -o axk-open-source-capstone.zip HEAD
+	@ls -lh axk-open-source-capstone.zip
