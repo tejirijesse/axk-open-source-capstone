@@ -168,8 +168,11 @@ REJECT_REASONS = [
 ]
 
 
-def inspect_lot(doc, passed, grade, quantity_kg, moisture_pct, notes, reject_reason=None):
-    """Authorised inspector signs one pass/fail inspection against the lot."""
+def inspect_lot(doc, passed, grade, quantity_kg, moisture_pct, notes, reject_reason=None, field_capture=None):
+    """Authorised inspector signs one pass/fail inspection against the lot.
+
+    field_capture: for an inspection captured offline (odk.py), the source submission's ID and SHA-256, so the
+    report digest on-chain commits to exactly what was recorded in the field."""
     grade = re.sub(r"[^A-Za-z0-9_]", "", grade or "")[:9] or "NA"
     doc.inspector_name = PERSONAS["inspector"]["name"]
     doc.inspector_account = address("inspector")
@@ -179,6 +182,8 @@ def inspect_lot(doc, passed, grade, quantity_kg, moisture_pct, notes, reject_rea
         "reject_reason": None if passed else reject_reason,
         "inspector": doc.inspector_account, "inspected_at": str(now_datetime()),
     }
+    if field_capture:
+        report["field_capture"] = field_capture
     doc.report_record = canonical(report)
     doc.report_digest = sha256_hex(doc.report_record)
     _, tx = invoke("registry", "inspect", PERSONAS["inspector"]["identity"], {

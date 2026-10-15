@@ -6,7 +6,7 @@ BENCH ?= $(abspath $(CURDIR)/../axk-bench)
 SITE  ?= axk.localhost
 SEED  ?= $(CURDIR)/axk_seed/data
 
-.PHONY: help toolchain test test-contracts test-python test-epcis build demo run run-frappe seed seed-purge install-app contracts-config zip
+.PHONY: help toolchain test test-contracts test-python test-epcis test-odk odk-form build demo run run-frappe seed seed-purge install-app contracts-config zip
 
 help:            ## list tasks
 	@grep -E "^[a-z-]+:.*## " $(MAKEFILE_LIST) | sed -E "s/:.*## /\t/" | column -t -s "$$(printf "\t")"
@@ -16,9 +16,10 @@ toolchain:       ## install Rust, the wasm target and stellar-cli (macOS, Homebr
 	rustup default stable
 	rustup target add wasm32v1-none
 
-test:            ## contract tests (65) + EPCIS export tests + integration tests (7; needs a server on :8000)
+test:            ## contract, EPCIS and ODK tests + integration tests (7; needs a server on :8000)
 	cd contracts && cargo test
 	python3 scripts/test_epcis.py
+	python3 scripts/test_odk.py
 	python3 scripts/test_trade.py
 
 test-contracts:  ## run all 65 smart contract unit tests
@@ -26,6 +27,12 @@ test-contracts:  ## run all 65 smart contract unit tests
 
 test-epcis:      ## GS1 EPCIS export tests (no server; schema checks need jsonschema)
 	python3 scripts/test_epcis.py
+
+test-odk:        ## ODK offline-inspection tests (no server)
+	python3 scripts/test_odk.py
+
+odk-form:        ## rebuild odk/axk_inspection.xlsx and .xml (needs openpyxl, pyxform)
+	python3 odk/build_form.py
 
 test-python:     ## run end-to-end integration and failure-mode test suite
 	python3 scripts/test_trade.py

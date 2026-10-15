@@ -70,6 +70,9 @@ others.
 - **The oracle problem is narrowed, not solved.** The contracts guarantee that a named, authorised,
   independent inspector vouched for the lot; they cannot guarantee the inspector told the truth.
   Accountability comes from the signed, permanent record and the separation of duties.
+- **ODK imports use the server-held inspector key.** An inspection captured offline in ODK goes through the
+  same access guard and limit as the Inspector screen, and its report digest covers the SHA-256 of the
+  original submission, but ODK proves what was captured on the phone, not who held it.
 - **Carrier and port do not sign for themselves.** Dispatch and gate-in are attested with the AXK verifier
   key, and the seal match is checked by the application, not by a contract. The attestation proves what the
   application recorded, not that the carrier or port agreed to it. Roadmap items LOG-4 and PORT-1 address this.
