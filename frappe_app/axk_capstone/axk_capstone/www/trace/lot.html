@@ -68,6 +68,11 @@
             {% for k in ["registry", "escrow", "attestation"] %}{% if lot[k] %}<dt>{{ k|capitalize }}</dt><dd><a class="xt-mono" href="{{ lot.explorer }}/contract/{{ lot[k] }}" target="_blank" rel="noopener">{{ lot[k][:8] }}…{{ lot[k][-6:] }} ↗</a></dd>{% endif %}{% endfor %}
           </dl>
         </div>
+        <div class="xt-card"><div class="xt-card-head"><h2>Export for supply-chain systems</h2></div>
+          <p>This lot's public history as a <strong>GS1 EPCIS 2.0</strong> document, the standard customs, exporters and traceability systems read. Each event links its Stellar transaction.</p>
+          <p style="margin-top:8px"><a class="xt-btn ghost" href="/api/method/axk_capstone.epcis.lot_events?ref={{ lot.lot_ref|urlencode }}&amp;download=1">Download EPCIS (JSON-LD)</a>
+          <a style="margin-left:8px" href="/api/method/axk_capstone.epcis.lot_events?ref={{ lot.lot_ref|urlencode }}" target="_blank" rel="noopener">View ↗</a></p>
+        </div>
         <div class="xt-card xt-qr"><div>{{ qr|safe }}</div><div><h3>Share or print</h3><p>This QR opens this page. Anyone holding the lot's paperwork can scan it and see the same on-chain evidence, without an account.</p><p class="xt-mono" style="margin-top:6px;overflow-wrap:anywhere">{{ share_url }}</p></div></div>
       </div>
     </div>

@@ -7,6 +7,8 @@ All notable changes to this project are recorded here. The format follows
 ## [Unreleased]
 
 ### Added
+- GS1 EPCIS 2.0 export of each lot's public history (`/api/method/axk_capstone.epcis.lot_events`), linked
+  from `/trace/lot`, validated against the official GS1 schema in `scripts/test_epcis.py` (PUB-6).
 - `docs/references.md`: open standards and open-source projects AXK learns from (GS1 EPCIS, farmOS,
   Open Food Network, ODK, OpenLMIS, Mojaloop).
 - Roadmap items INSP-6 (offline inspection with ODK), SET-3 (Mojaloop payout study) and PUB-6 (GS1 EPCIS export).
