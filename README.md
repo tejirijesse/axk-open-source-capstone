@@ -99,6 +99,7 @@ The five operational roles represent the practical core of AXK's physical and fi
 - [Security: roles, 14 contract guarantees and the test that pins each, application controls, known limits](docs/security.md)
 - [Contract reference and design rationale](contracts/README.md)
 - [Testnet deployments and what was exercised on-chain](docs/deployments.md)
+- [Reference projects: open standards and open-source projects AXK learns from](docs/references.md)
 
 ## Tech stack
 
@@ -127,7 +128,7 @@ scripts/demo.sh       deploys fresh contracts and runs one verified trade on tes
 scripts/run-frappe.sh starts the local Frappe stack
 scripts/server.py     offline simulation of the screens (no blockchain)
 scripts/test_trade.py end-to-end lifecycle and failure-mode tests
-docs/                 architecture, security, deployments, history dataset, screenshots
+docs/                 architecture, security, deployments, references, history dataset, screenshots
 .github/              issue and pull request templates
 ROADMAP.md            step-by-step contribution tracks for every stage of the trade
 CONTRIBUTING.md       setup, workflow and project rules

@@ -42,6 +42,7 @@ The inspector is the trust anchor: escrow refuses money for anything they have n
 | INSP-3 | 🟡 | **Inspector management screen** for the registry admin: add and remove inspectors (`add_inspector` / `remove_inspector`). | new admin page, `chain.py` | Adding an inspector shows the transaction; a removed inspector is refused by the contract |
 | INSP-4 | 🟡 | **Calibration samples:** occasional known-grade lots to measure how consistently inspectors grade. | new DocType + report | A report shows each inspector's agreement rate |
 | INSP-5 | 🔴 | **Quorum inspection** for high-value lots: N of M inspectors must pass. | `contracts/lot_registry` | Contract tests for quorum reached / not reached / duplicate signer |
+| INSP-6 | 🟡 | **Offline inspection with ODK.** Inspectors fill an ODK form in the field without a connection; the submission becomes the inspection record and is signed when it syncs. See [docs/references.md](docs/references.md). | new ODK form, `trade_api.py` import endpoint | An inspection captured offline is signed on-chain after sync, with the same digest checks |
 
 ## 3 · Buyer and escrow — `/trade/buy`
 
@@ -80,6 +81,7 @@ supply chains most often break, so this track has the most room to grow.
 |---|---|---|---|---|
 | SET-1 | 🟡 | **Settlement retries:** if settlement stops part-way (e.g. testnet timeout), resume from the last confirmed step. `settle` already saves each step's hash as it lands. | `chain.py` (`settle`), `trade.js` | A *Resume settlement* action completes a half-settled trade without repeating steps |
 | SET-2 | 🔴 | **Cash-out to mobile money** through a Stellar SEP-24 anchor (AXK's `axk-stellar` repository has a MoneyGram client). | new integration | A member can withdraw their share to cash in a sandbox |
+| SET-3 | 🔴 | **Mojaloop payout study:** how settled funds could reach members across mobile-money providers via a Mojaloop-based switch. See [docs/references.md](docs/references.md). | design note in `docs/` | A reviewed design note comparing the SEP-24 anchor route and a Mojaloop route |
 
 ## 7 · Public trace and explorer — `/trace`, `/chain`
 
@@ -90,6 +92,7 @@ supply chains most often break, so this track has the most room to grow.
 | PUB-3 | 🟡 | **"Check a document" on `/trace`:** drop a record file; the browser hashes it and compares with the on-chain digest. | `www/trace/lot.html`, small JS | A matching file shows ✓; an edited file shows ✕ |
 | PUB-4 | 🟡 | **Open history dataset:** move the optional five-year history into `axk_capstone`'s own DocTypes so it no longer depends on AXK's private platform app. See [docs/history-dataset.md](docs/history-dataset.md). | `axk_seed/`, `api.py`, new DocTypes | `make seed` works on a plain Frappe site |
 | PUB-5 | 🟡 | **Event indexer:** store contract events so the explorer's history outlives the RPC's ~7-day window. | `stellar_live.py`, new DocType + scheduled job | The explorer shows events older than a week |
+| PUB-6 | 🟡 | **Export lots as GS1 EPCIS 2.0 events** (commissioning, inspection, shipping, receiving), so other supply-chain systems can read AXK records. See [docs/references.md](docs/references.md). | new `epcis.py`, `/trace` download | A lot downloads as valid EPCIS 2.0 JSON-LD that an EPCIS tool (e.g. openEPCIS) accepts |
 
 ## 8 · Platform and developer experience
 
