@@ -6,10 +6,16 @@ BENCH ?= $(abspath $(CURDIR)/../axk-bench)
 SITE  ?= axk.localhost
 SEED  ?= $(CURDIR)/axk_seed/data
 
-.PHONY: help toolchain test test-contracts test-python test-epcis test-odk odk-form build demo run run-frappe seed seed-purge install-app contracts-config zip
+.PHONY: help check-env show-db toolchain test test-contracts test-python test-epcis test-odk odk-form build demo run run-frappe seed seed-purge install-app contracts-config zip
 
 help:            ## list tasks
 	@grep -E "^[a-z-]+:.*## " $(MAKEFILE_LIST) | sed -E "s/:.*## /\t/" | column -t -s "$$(printf "\t")"
+
+check-env:       ## one-screen check: toolchain, MariaDB, Redis, app server, contracts, testnet
+	@AXK_BENCH=$(BENCH) AXK_SITE=$(SITE) ./scripts/check_env.sh
+
+show-db:         ## the five newest trades as stored in MariaDB (lot, status, transaction hashes)
+	@cd $(BENCH) && bench --site $(SITE) mariadb -e 'select lot_ref, status, left(register_tx,12) as register_tx, left(inspect_tx,12) as inspect_tx, left(attest_tx,12) as attest_tx from `tabAXK Chain Trade` order by creation desc limit 5'
 
 toolchain:       ## install Rust, the wasm target and stellar-cli (macOS, Homebrew)
 	brew install rustup stellar-cli
