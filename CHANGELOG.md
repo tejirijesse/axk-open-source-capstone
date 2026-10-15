@@ -7,6 +7,9 @@ All notable changes to this project are recorded here. The format follows
 ## [Unreleased]
 
 ### Added
+- `make check-env` (one-screen environment check) and `make show-db` (latest trades as stored in MariaDB).
+- `odk/sample_submission.py` writes an ODK submission for any lot, for demos without a phone.
+- Demo video script rewritten for the full stack, with the environment, ODK and EPCIS segments.
 - GS1 EPCIS 2.0 export of each lot's public history (`/api/method/axk_capstone.epcis.lot_events`), linked
   from `/trace/lot`, validated against the official GS1 schema in `scripts/test_epcis.py` (PUB-6).
 - Offline inspection with ODK: an XLSForm (`odk/`), an importer that signs the inspection and hashes the

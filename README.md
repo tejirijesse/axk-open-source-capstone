@@ -178,6 +178,7 @@ bench --site axk.localhost set-config axk_demo_mode 1   # local development only
 
 # 4. run
 make run-frappe         # http://localhost:8000/trade
+make check-env          # in a second terminal: toolchain, MariaDB, Redis, server, contracts, testnet
 ```
 
 Demo mode lets the screens sign without logging in, **only for requests made directly on your own machine**;
