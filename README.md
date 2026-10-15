@@ -13,7 +13,7 @@ contracts release payment, split it between members and write an attestation tha
 - **Repository:** https://github.com/tejirijesse/axk-open-source-capstone
 - **Open source:** MIT licensed and open to contributions — see [CONTRIBUTING.md](CONTRIBUTING.md) and the
   step-by-step [ROADMAP.md](ROADMAP.md) (starter to advanced items for every stage of the trade).
-- **Demo video:** link to be added (video files are not stored in the repository).
+- **Demo video:** [AXK Capstone demo on YouTube](https://youtu.be/MrSXiJG_MAU) (recorded on the full stack, Stellar testnet).
 - **Pilot scope (planned):** Kigali cooperatives on the Rwanda–DRC and Rwanda–Uganda corridors. The field pilot
   has not been run yet; nothing in this repository is pilot evidence.
 
