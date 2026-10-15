@@ -81,7 +81,8 @@ supply chains most often break, so this track has the most room to grow.
 |---|---|---|---|---|
 | SET-1 | 🟡 | **Settlement retries:** if settlement stops part-way (e.g. testnet timeout), resume from the last confirmed step. `settle` already saves each step's hash as it lands. | `chain.py` (`settle`), `trade.js` | A *Resume settlement* action completes a half-settled trade without repeating steps |
 | SET-2 | 🔴 | **Cash-out to mobile money** through a Stellar SEP-24 anchor (AXK's `axk-stellar` repository has a MoneyGram client). | new integration | A member can withdraw their share to cash in a sandbox |
-| SET-3 | 🔴 | **Mojaloop payout study:** how settled funds could reach members across mobile-money providers via a Mojaloop-based switch. See [docs/references.md](docs/references.md). | design note in `docs/` | A reviewed design note comparing the SEP-24 anchor route and a Mojaloop route |
+| SET-3 | 🔴 | **Mojaloop payout study:** design note drafted at [docs/design/set-3-mojaloop-payouts.md](docs/design/set-3-mojaloop-payouts.md); needs review. | `docs/design/` | Reviewed and accepted by a maintainer |
+| SET-4 | 🟡 | **Payout instruction and result records:** after `distribute`, one instruction per member share (salted phone hash, never on-chain), attested; the partner's result attested the same way; shown on `/trace`. Needed by SET-2 and route B of SET-3. | `chain.py`, new DocType, `verify.py` | `/trace` shows each share's attested instruction and result, with no personal data |
 
 ## 7 · Public trace and explorer — `/trace`, `/chain`
 
