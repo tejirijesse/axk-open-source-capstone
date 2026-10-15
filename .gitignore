@@ -15,7 +15,7 @@ scripts/.demo-state.env
 __pycache__/
 *.pyc
 *.db
-axk-capstone-submission.zip
+axk-open-source-capstone.zip
 docs/demo/temp/
 *.mp4
 docs/demo/*.mp4
