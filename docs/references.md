@@ -10,7 +10,7 @@ item it informs. None of them is a dependency today; check each project's curren
 | **Open Food Network** | Open-source food marketplace software run by a global community. | A governance model for an agricultural open-source project with many local operators. | [GOVERNANCE.md](../GOVERNANCE.md) |
 | **ODK (Open Data Kit)** | Offline-first field data collection (forms on Android). | Inspectors often work with poor connectivity. Inspection forms captured offline in ODK and submitted later fit how field inspection actually happens. | INSP-6 (done: [odk/README.md](../odk/README.md)), MOB-1 |
 | **OpenLMIS** | Open-source logistics management system used across several African countries. | Shows how an open-source supply-chain system is adopted and funded with governments and donors. | Adoption |
-| **Mojaloop** | Open-source payment interoperability software, backed by the Gates Foundation, for connecting banks and mobile-money providers. | The strongest model for how settled funds reach members' mobile-money accounts across providers. | SET-2, SET-3 |
+| **Mojaloop** | Open-source payment interoperability software, backed by the Gates Foundation, for connecting banks and mobile-money providers. | The strongest model for how settled funds reach members' mobile-money accounts across providers. | SET-2, SET-3 ([design note](design/set-3-mojaloop-payouts.md)) |
 
 ## How they fit together
 
