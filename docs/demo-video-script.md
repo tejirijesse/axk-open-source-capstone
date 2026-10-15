@@ -1,5 +1,7 @@
 # Demo video script (target 9:30, limit 10:00)
 
+**Recorded video:** https://youtu.be/MrSXiJG_MAU
+
 The brief asks for demonstration over description. Everything below runs on the **full stack** (`make
 run-frappe`, Stellar testnet). Never record the offline simulation (`make run`) as the product.
 
