@@ -14,6 +14,9 @@ contracts release payment, split it between members and write an attestation tha
 - **Open source:** MIT licensed and open to contributions — see [CONTRIBUTING.md](CONTRIBUTING.md) and the
   step-by-step [ROADMAP.md](ROADMAP.md) (starter to advanced items for every stage of the trade).
 - **Demo video:** [AXK Capstone demo on YouTube](https://youtu.be/MrSXiJG_MAU) (recorded on the full stack, Stellar testnet).
+- **Try it online:** [axk-open-source-capstone.vercel.app](https://axk-open-source-capstone.vercel.app). This is the
+  **offline simulation**: the same screens with locally generated hashes, nothing on Stellar, and demo data that
+  resets. The real system runs with `make run-frappe` (see the video).
 - **Pilot scope (planned):** Kigali cooperatives on the Rwanda–DRC and Rwanda–Uganda corridors. The field pilot
   has not been run yet; nothing in this repository is pilot evidence.
 

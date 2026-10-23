@@ -34,7 +34,9 @@ FRAPPE_APP = BASE_DIR / "frappe_app" / "axk_capstone" / "axk_capstone"
 PUBLIC_DIR = FRAPPE_APP / "public"
 WWW_DIR = FRAPPE_APP / "www"
 TEMPLATES_DIR = FRAPPE_APP / "templates"
-DB_PATH = BASE_DIR / "scripts" / "axk.db"
+# AXK_SIM_DB lets a host with a read-only code directory (e.g. Vercel, which only allows /tmp) keep the
+# simulation's SQLite file somewhere writable.
+DB_PATH = Path(os.environ.get("AXK_SIM_DB") or BASE_DIR / "scripts" / "axk.db")
 STATE_ENV = BASE_DIR / "scripts" / ".demo-state.env"
 
 PORT = int(os.environ.get("PORT", 8000))
@@ -560,7 +562,9 @@ class AXKHandler(http.server.SimpleHTTPRequestHandler):
             self.serve_chain_explorer()
             return
 
-        super().do_GET()
+        # Never fall back to serving files from the repository folder: it holds local files such as
+        # .env.local that must not be readable over HTTP.
+        self.send_error(404, "Not found")
 
     def do_POST(self):
         parsed = urllib.parse.urlparse(self.path)

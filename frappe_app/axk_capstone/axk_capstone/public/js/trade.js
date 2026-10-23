@@ -236,7 +236,7 @@
         return el("a", { class: "xt-card xt-role", href: r.href },
           el("div", { class: "xt-role-top" }, el("div", { class: "xt-role-icon", "aria-hidden": "true", text: r.icon }),
             el("div", {}, el("h2", { text: r.title }), el("p", { style: "font-size:12px", text: r.who ? r.who.name : "" }))),
-          el("ul", {}, r.items.map(function (i) { return el("li", { text: i }); })),
+          el("ul", {}, r.items.map(function (i) { return el("li", { text: chainLabel(i) }); })),
           el("div", { class: "xt-role-foot" }, el("span", {}, el("b", { text: String(r.count) }), " " + r.countLabel), el("span", { text: "Open →" })));
       })),
       el("div", { class: "xt-card xt-section-gap" },

@@ -38,6 +38,28 @@ below lists as covered only by unit tests.
 
 ---
 
+## Public demo (Vercel): offline simulation
+
+**URL:** https://axk-open-source-capstone.vercel.app
+
+The offline simulation (`scripts/server.py`) runs on Vercel as a Python function (`api/index.py`, routed by
+`vercel.json`). It signs nothing and every page says *Offline simulation · not on-chain*. Vercel's code folder
+is read-only, so the simulation keeps its SQLite data in `/tmp`. A new instance starts again from the seeded
+demo lots, so trades made there do not last.
+
+`.vercelignore` uploads only `api/`, `scripts/server.py` and the Frappe app's pages and assets. Local files such
+as `.env.local` and `scripts/.demo-state.env` never leave the machine, and the server returns 404 for any path
+that is not a page, an asset or an API method.
+
+The full stack (Frappe, MariaDB, Redis, stellar-cli and the signing keys) cannot run on Vercel; see stage 2 of
+the deployment plan in the README for hosting it.
+
+```bash
+vercel deploy --prod        # from the repository root
+```
+
+---
+
 ## Upstream AXK deployment (August 2026)
 
 Recorded for provenance. The upstream repository (`AXKNETWORK/axk-stellar`) is private; these contract IDs are

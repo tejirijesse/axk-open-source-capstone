@@ -1,0 +1,14 @@
+# Only the offline simulation is deployed to Vercel: api/, scripts/server.py and the Frappe app's
+# public/, www/ and templates/ folders. Everything else, and every local or secret file, stays off it.
+/*
+!/api
+!/scripts
+!/frappe_app
+!/vercel.json
+!/requirements.txt
+/scripts/*
+!/scripts/server.py
+/frappe_app/axk_capstone/axk_capstone/*.py
+.env*
+*.db
+__pycache__

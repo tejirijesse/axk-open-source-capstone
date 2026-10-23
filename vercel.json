@@ -1,0 +1,9 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "functions": {
+    "api/index.py": {
+      "includeFiles": "{scripts/server.py,frappe_app/axk_capstone/axk_capstone/public/**,frappe_app/axk_capstone/axk_capstone/www/**,frappe_app/axk_capstone/axk_capstone/templates/**}"
+    }
+  },
+  "rewrites": [{ "source": "/(.*)", "destination": "/api/index?__path=/$1" }]
+}

@@ -7,6 +7,7 @@ All notable changes to this project are recorded here. The format follows
 ## [Unreleased]
 
 ### Added
+- Public demo of the offline simulation on Vercel (`api/index.py`, `vercel.json`, `.vercelignore`).
 - `make check-env` (one-screen environment check) and `make show-db` (latest trades as stored in MariaDB).
 - `odk/sample_submission.py` writes an ODK submission for any lot, for demos without a phone.
 - Demo video script rewritten for the full stack, with the environment, ODK and EPCIS segments.
@@ -20,6 +21,11 @@ All notable changes to this project are recorded here. The format follows
 - `docs/references.md`: open standards and open-source projects AXK learns from (GS1 EPCIS, farmOS,
   Open Food Network, ODK, OpenLMIS, Mojaloop).
 - Roadmap items INSP-6 (offline inspection with ODK), SET-3 (Mojaloop payout study) and PUB-6 (GS1 EPCIS export).
+
+### Fixed
+- The offline simulation no longer serves files from the repository folder for unknown URLs (it could expose
+  local files such as `.env.local`); it returns 404.
+- Role screens open quickly: RWF balances are read only for the accounts that hold the token, and cached.
 
 ## [0.1.0] - 2026-10-15
 

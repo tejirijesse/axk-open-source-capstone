@@ -19,3 +19,6 @@ axk-open-source-capstone.zip
 docs/demo/temp/
 *.mp4
 docs/demo/*.mp4
+
+# Vercel CLI project link (local)
+.vercel

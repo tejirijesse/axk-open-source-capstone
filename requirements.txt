@@ -1,0 +1,3 @@
+# Python packages for the hosted offline simulation (api/index.py on Vercel). The full stack installs its own
+# dependencies through the Frappe app (frappe_app/axk_capstone/pyproject.toml); the contracts are Rust.
+qrcode>=7
