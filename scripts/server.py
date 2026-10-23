@@ -93,6 +93,18 @@ def load_demo_state():
 
 DEMO_STATE = load_demo_state()
 
+_ASSET_VERSIONS = {}
+
+
+def asset_version(path):
+    """Cache-busting tag from the file's contents. Hosts such as Vercel give every file the same timestamp,
+    so a modification time would never change between deploys."""
+    key = str(path)
+    if key not in _ASSET_VERSIONS:
+        _ASSET_VERSIONS[key] = hashlib.sha256(Path(path).read_bytes()).hexdigest()[:10]
+    return _ASSET_VERSIONS[key]
+
+
 def sha256_hex(text):
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
@@ -665,8 +677,8 @@ class AXKHandler(http.server.SimpleHTTPRequestHandler):
             page_key = "lot"
 
         nav_html = self.render_nav(page_key)
-        css_time = int(os.path.getmtime(PUBLIC_DIR / "css" / "axk.css"))
-        js_time = int(os.path.getmtime(PUBLIC_DIR / "js" / "trade.js"))
+        css_time = asset_version(PUBLIC_DIR / "css" / "axk.css")
+        js_time = asset_version(PUBLIC_DIR / "js" / "trade.js")
 
         html = f'''<!DOCTYPE html>
 <html lang="en">
@@ -695,7 +707,7 @@ class AXKHandler(http.server.SimpleHTTPRequestHandler):
     def serve_trace_search(self, query):
         q = query.get("q", [""])[0].strip()
         nav_html = self.render_nav("verify")
-        css_time = int(os.path.getmtime(PUBLIC_DIR / "css" / "axk.css"))
+        css_time = asset_version(PUBLIC_DIR / "css" / "axk.css")
 
         conn = get_db()
         c = conn.cursor()
@@ -782,7 +794,7 @@ class AXKHandler(http.server.SimpleHTTPRequestHandler):
     def serve_trace_lot(self, query):
         ref = (query.get("ref") or query.get("lot") or [""])[0].strip()
         nav_html = self.render_nav("verify")
-        css_time = int(os.path.getmtime(PUBLIC_DIR / "css" / "axk.css"))
+        css_time = asset_version(PUBLIC_DIR / "css" / "axk.css")
 
         conn = get_db()
         c = conn.cursor()
@@ -905,8 +917,8 @@ class AXKHandler(http.server.SimpleHTTPRequestHandler):
 
     def serve_chain_explorer(self):
         nav_html = self.render_nav("chain")
-        css_time = int(os.path.getmtime(PUBLIC_DIR / "css" / "chain.css"))
-        js_time = int(os.path.getmtime(PUBLIC_DIR / "js" / "chain.js"))
+        css_time = asset_version(PUBLIC_DIR / "css" / "chain.css")
+        js_time = asset_version(PUBLIC_DIR / "js" / "chain.js")
 
         chain_html_file = WWW_DIR / "chain.html"
         body_content = ""
