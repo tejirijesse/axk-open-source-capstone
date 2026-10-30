@@ -121,6 +121,8 @@
   }
 
   // ---------- 1. live testnet ----------
+  // Ledger close times shown as Kigali wall clock, whatever the viewer's zone.
+  const when = (t) => new Date(t).toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", timeZone: "Africa/Kigali" });
   const KIND_CLS = { "Token issued": "g3", "Escrow funded": "g1", "Escrow released": "on", "Split payout": "g2", Transfer: "g3" };
 
   function renderLive() {
@@ -149,7 +151,7 @@
       ev.length + " token events since ledger " + nf.format(d.window_start_ledger) + ". Newest first.";
 
     const rows = ev.slice().reverse().map((e) => el("tr", {},
-      el("td", { text: new Date(e.time).toLocaleString() }),
+      el("td", { text: when(e.time) }),
       el("td", {}, el("span", { class: "cx-kind " + (KIND_CLS[e.kind] || "g3") }, el("i"), e.kind)),
       el("td", { text: e.from.name }),
       el("td", { text: e.to.name }),
@@ -183,7 +185,7 @@
     table.replaceChildren(
       el("thead", {}, el("tr", {}, ["Time", "Event", "Lot", "Signed by", "Result", "Transaction"].map((h) => el("th", { text: h })))),
       el("tbody", {}, rows.slice().reverse().map((r) => el("tr", {},
-        el("td", { text: new Date(r.time).toLocaleString() }),
+        el("td", { text: when(r.time) }),
         el("td", { text: r.kind }),
         el("td", {}, r.lot_ref ? el("a", { href: "/trace/lot?ref=" + encodeURIComponent(r.lot_ref), text: r.lot_ref }) : el("span", { class: "cx-mono", text: short(r.lot_id, 8) })),
         el("td", { text: r.actor.name }),
@@ -197,8 +199,11 @@
       const name = e.to.key === "coop" ? "Cooperative share" : e.to.name;
       payouts[name] = (payouts[name] || 0) + e.amount;
     });
-    const held = Math.max(0, funded - released);
-    if (!funded) { box.replaceChildren(el("div", { class: "cx-empty", text: "No escrow activity in the RPC window yet." })); return; }
+    if (!funded && !released) { box.replaceChildren(el("div", { class: "cx-empty", text: "No escrow activity in the RPC window yet." })); return; }
+    // A release can outlive its funding event in the RPC window; draw the inflow at least as wide as what left.
+    const early = released > funded;
+    funded = Math.max(funded, released);
+    const held = funded - released;
 
     const W = Math.max(560, box.clientWidth || 800), H = 300, nodeW = 12, pad = 10, top = 16;
     const usable = H - top - 16;
@@ -249,6 +254,7 @@
       svg.append(stext({ x: tx, y: ty + 15, "font-size": 11, fill: css("--ink-2"), "dominant-baseline": "middle" }, rwf(n.v)));
     });
     box.replaceChildren(svg);
+    if (early) box.append(el("p", { class: "tr-small cx-note", text: "Earlier funding outside the RPC window." }));
   }
 
   // ---------- 2. hash chain ----------

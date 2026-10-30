@@ -193,7 +193,8 @@ button { font-family: inherit; }
 .xt-table th:last-child, .xt-table td:last-child { padding-right: 16px; }
 .xt-table td.num, .xt-table th.num { text-align: right; font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; }
 .xt-table th.num { font-size: 12px; font-weight: 600; }
-.xt-table td.c-next { color: var(--ink-2); max-width: 260px; overflow: hidden; text-overflow: ellipsis; }
+.xt-table td.c-next { color: var(--ink-2); min-width: 150px; max-width: 260px; white-space: normal; line-height: 18px; }
+.xt-table td.c-next span { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .xt-table td a { text-decoration: none; font-weight: 500; }
 .xt-table td a:hover { text-decoration: underline; }
 .xt-table tr.is-row { cursor: pointer; }
@@ -349,7 +350,8 @@ button { font-family: inherit; }
 .xt-lot-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; margin-bottom: 14px; }
 .xt-lot-title { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 .xt-mono-ref { font-family: var(--font-mono); font-size: 20px; line-height: 26px; font-weight: 600; letter-spacing: -0.01em; color: var(--ink); overflow-wrap: anywhere; }
-.xt-lot-body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; margin-top: 16px; flex: 1 1 auto; min-height: 0; }
+/* One row capped at the space left, so the two columns scroll and the page does not. */
+.xt-lot-body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); gap: 20px; margin-top: 16px; flex: 1 1 0; min-height: 320px; }
 .xt-lot-body > div { min-height: 0; overflow: auto; display: grid; gap: 16px; align-content: start; }
 .xt-lot-body .xt-card + .xt-card { margin-top: 0; }
 .xt-record { background: var(--sunk); border-radius: var(--r-control); padding: 10px 12px; font-family: var(--font-mono); font-size: 12px; line-height: 18px; overflow-wrap: anywhere; color: var(--ink-2); max-height: 120px; overflow-y: auto; }
@@ -434,7 +436,9 @@ button { font-family: inherit; }
 .xl-pw button:hover { background: var(--proof-wash); }
 .xl-demo h2 { font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: 0.01em; color: var(--ink-2); }
 .xl-demo .xl-hint { font-size: 13px; line-height: 18px; font-weight: 500; color: var(--ink-3); margin: 2px 0 8px; }
-.xl-list { border: 1px solid var(--line); border-radius: var(--r-panel); overflow: hidden; }
+.xl-list { border: 1px solid var(--line); border-radius: var(--r-panel); }
+.xl-list > :first-child { border-radius: calc(var(--r-panel) - 1px) calc(var(--r-panel) - 1px) 0 0; }
+.xl-list > :last-child { border-radius: 0 0 calc(var(--r-panel) - 1px) calc(var(--r-panel) - 1px); }
 .xl-acct { display: grid; grid-template-columns: 16px auto minmax(0, 1fr) auto; align-items: center; gap: 10px; width: 100%; min-height: 44px; padding: 0 12px; border: 0; border-bottom: 1px solid var(--line); background: var(--paper); color: var(--ink); font: inherit; text-align: left; cursor: pointer; }
 .xl-list > :last-child { border-bottom: 0; }
 .xl-acct:hover { background: var(--sunk); }
@@ -456,6 +460,8 @@ button { font-family: inherit; }
   .xt-rail-sep { height: 1px; background: var(--frame-line); margin: 8px 4px; }
 }
 @media (min-width: 1280px) { .xt-rail-sep { display: none; } }
+/* Rail plus docket leave the queue about 570px: drop Commodity so Status and Next stay on screen. */
+@media (min-width: 960px) and (max-width: 1439px) { .xt-table .c-com { display: none; } }
 @media (max-width: 959px) {
   .xt-app { grid-template-columns: minmax(0, 1fr); height: auto; min-height: 100vh; }
   .xt-rail { display: none; }
@@ -491,7 +497,8 @@ button { font-family: inherit; }
   .xt-brand span:last-child { display: none; }
   .xt-main, .xt-public .xt-main { margin: 0; border-radius: 0; padding: 16px; }
   .xt-busy { inset: 56px 0 0; border-radius: 0; }
-  .xt-ledger { grid-template-columns: 1fr 1fr; }
+  .xt-ledger { grid-template-columns: 1fr 1fr; grid-auto-flow: row; }
+  .xt-ledger > :last-child:nth-child(odd) { grid-column: 1 / -1; }
   .xt-row { grid-template-columns: 1fr; }
   .xt-btn, .xt-input, .xt-seg span { min-height: 44px; }
   .xt-seg span { height: 44px; }
@@ -506,7 +513,8 @@ button { font-family: inherit; }
   .xl-form { padding: 24px 16px 40px; }
   .xl-acct { grid-template-columns: 16px auto minmax(0, 1fr); min-height: 48px; }
   .xl-acct .xl-duty { display: none; }
-  .xl-acct .xt-mono { justify-self: end; overflow: hidden; text-overflow: ellipsis; max-width: 150px; }
+  .xl-acct { padding: 8px 12px; }
+  .xl-acct .xt-mono { justify-self: end; text-align: right; font-size: 12px; overflow-wrap: anywhere; }
 }
 @media (prefers-reduced-motion: reduce) {
   .xt-app *, .xl * { transition-duration: 0s !important; animation-duration: 0s !important; }

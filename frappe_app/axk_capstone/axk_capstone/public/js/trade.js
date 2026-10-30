@@ -317,7 +317,7 @@
     o = o || {};
     var cols = o.cols || LOT_COLS;
     return el("div", { class: "xt-tablewrap" }, el("table", { class: "xt-table" },
-      el("thead", {}, el("tr", {}, cols.map(function (c) { return el("th", { class: c.num ? "num" : null, scope: "col", text: c.label }); }))),
+      el("thead", {}, el("tr", {}, cols.map(function (c) { return el("th", { class: c.cls || (c.num ? "num" : null), scope: "col", text: c.label }); }))),
       el("tbody", {}, rows.map(function (r) {
         var pick = function () { o.onPick(r); };
         var tr = el("tr", { class: "is-row" + (r.name === o.selected ? " is-selected" : ""), tabindex: "0", "data-name": r.name, "aria-current": r.name === o.selected ? "true" : null });
