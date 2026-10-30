@@ -468,6 +468,11 @@ button { font-family: inherit; }
 /* Rail plus docket leave the queue about 570px: drop Commodity, and custody shows only its n/9 figure. */
 @media (min-width: 960px) and (max-width: 1439px) { .xt-table .c-com { display: none; } }
 @media (min-width: 960px) and (max-width: 1599px) { .xt-table .c-cus .xt-notches { display: none; } }
+/* With the rail collapsed to icons the queue gets about 458px, short of the 552 it needs: stack the docket under it. */
+@media (min-width: 960px) and (max-width: 1099px) {
+  .xt-work { grid-template-columns: minmax(0, 1fr); flex: none; }
+  .xt-work .xt-panel { max-height: 420px; }
+}
 @media (max-width: 959px) {
   .xt-app { grid-template-columns: minmax(0, 1fr); height: auto; min-height: 100vh; }
   .xt-rail { display: none; }

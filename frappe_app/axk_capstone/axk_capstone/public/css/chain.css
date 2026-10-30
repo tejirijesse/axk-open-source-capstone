@@ -117,8 +117,10 @@
   .cx-tab { font-size: 13px; }
   .cx-tile + .cx-tile { border-left: 0; }
   .cx-controls .tr-btn, .cx-controls select { min-height: 44px; }
-  .cx-chart svg { min-width: 480px; }
-  .cx-chart { overflow-x: auto; }
+  /* History charts keep a 480px floor; the live flow is drawn at the box width. */
+  .cx-chart:not(#live-flow) svg { min-width: 480px; }
+  .cx-chart:not(#live-flow) { overflow-x: auto; }
+  #live-flow { overflow: hidden; }
 }
 @media print { .cx-tabs, .cx-controls { display: none; } .cx-pane[hidden] { display: block; } }
 .cx-legend i.sw-on { background: var(--chart-proof); }
