@@ -18,7 +18,7 @@
   const usd = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", notation: "compact", maximumFractionDigits: 2 });
   const rwf = (v) => nf.format(Math.round(v)) + " RWF";
   const nfc = new Intl.NumberFormat("en-US", { notation: "compact", maximumFractionDigits: 1 });
-  const rwfShort = (v) => nfc.format(Math.round(v)) + " RWF";
+  const rwfShort = (v) => nfc.format(Math.round(v));
   const short = (h, n) => (h ? h.slice(0, n || 10) + "…" + h.slice(-6) : "—");
 
   function el(tag, props, ...kids) {
@@ -209,7 +209,7 @@
 
     // Phones get the box width, a narrower label gutter and short names, so the destinations stay on screen.
     const W = Math.max(300, box.clientWidth || 800), narrow = W < 520, H = 300, nodeW = 12, pad = 10, top = 16;
-    const short = (n) => (narrow ? ({ "Escrow contracts": "Escrow", "Cooperative share": "Coop share", "Held in escrow": "Held" })[n] || n : n);
+    const short = (n) => (narrow ? ({ "Escrow contracts": "Escrow", "Cooperative": "Coop", "Cooperative share": "Coop share", "Held in escrow": "Held" })[n] || n : n);
     const usable = H - top - 16;
     const cols = [0, 0.3, 0.6, 1].map((f) => 8 + f * (W - 8 - nodeW - (narrow ? 84 : 150)));
     const scale = (v) => (v / funded) * (usable - pad * 3);
@@ -253,6 +253,9 @@
       svg.append(s("rect", { x: n.x, y: n.y, width: nodeW, height: n.h, rx: 3,
         fill: n.pending ? "none" : css("--chart-proof"), stroke: n.pending ? css("--ink-3") : "none",
         "stroke-dasharray": n.pending ? "3 2" : null }));
+    });
+    // Labels go on after every bar, so the next column's bar never paints over a figure.
+    nodes.forEach((n) => {
       const tx = n.x + nodeW + 6, ty = n.y + Math.min(n.h / 2, 14);
       // Paper halo keeps a label readable where it crosses a ribbon.
       const halo = { stroke: css("--paper"), "stroke-width": 3, "paint-order": "stroke", "stroke-linejoin": "round" };
