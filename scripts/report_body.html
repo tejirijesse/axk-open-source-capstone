@@ -1,19 +1,56 @@
-<div class="page" id="page-1">
+<div class="page cover-page">
+  <div class="cv-top"><span class="mark"><span class="bars"><i></i><i></i></span>AXK Network</span><span class="cv-date">October 2026</span></div>
+  <div class="cv-main">
+    <div class="kicker">Technical Report</div>
+    <h1>Verification &amp; Settlement Layer on Stellar</h1>
+    <div class="lede">Four Soroban smart contracts and a Frappe v15 application for verified cross-border agricultural trade between Rwanda, the DRC and Uganda.</div>
+    <div class="cv-rule"><i></i><i></i></div>
+  </div>
+  <dl class="cv-meta">
+    <div><dt>Student</dt><dd>Oghenetejiri Jesse</dd></div>
+    <div><dt>Supervisor</dt><dd>Junior Turatsinze</dd></div>
+    <div><dt>Programme</dt><dd>BSE Software Engineering Capstone</dd></div>
+    <div><dt>Institution</dt><dd>African Leadership University</dd></div>
+    <div><dt>Live system</dt><dd>capstone.axk.org</dd></div>
+    <div><dt>Demo video</dt><dd>youtu.be/MrSXiJG_MAU</dd></div>
+    <div><dt>Repository</dt><dd>github.com/tejirijesse/axk-open-source-capstone</dd></div>
+    <div><dt>Offline simulation</dt><dd>axk-open-source-capstone.vercel.app</dd></div>
+  </dl>
+</div>
+
+<div class="page toc-page">
+  <div class="page-header"><span class="mark"><span class="bars"><i></i><i></i></span>AXK Network</span><span>Capstone Technical Report · ALU BSE 2026</span></div>
   <div class="page-content">
-    <div class="cover">
-      <span class="mark"><span class="bars"><i></i><i></i></span>AXK Network</span>
-      <div class="kicker">ALU · BSE Software Engineering Capstone 2026</div>
-      <h1>Verification &amp; Settlement Layer on Stellar</h1>
-      <div class="lede">Technical report on four Soroban smart contracts and a Frappe v15 application for verified cross-border agricultural trade.</div>
-      <dl>
-        <div><dt>Student</dt><dd>Oghenetejiri Jesse</dd></div>
-        <div><dt>Supervisor</dt><dd>Junior Turatsinze</dd></div>
-        <div><dt>Live system</dt><dd>capstone.axk.org</dd></div>
-        <div><dt>Demo video</dt><dd>youtu.be/MrSXiJG_MAU</dd></div>
-        <div><dt>Repository</dt><dd>github.com/tejirijesse/axk-open-source-capstone</dd></div>
-        <div><dt>Offline simulation</dt><dd>axk-open-source-capstone.vercel.app</dd></div>
-      </dl>
-    </div>
+    <div class="toc-kicker">Contents</div>
+    <h2 class="toc-title">What this report covers</h2>
+    <ol class="toc">
+      <li class="toc-h2"><span class="t"><span class="n">01</span>Problem and approach</span><span class="dots"></span><span class="pg">1</span></li>
+      <li class="toc-h2"><span class="t"><span class="n">02</span>Scope: planned versus delivered</span><span class="dots"></span><span class="pg">1</span></li>
+      <li class="toc-h2"><span class="t"><span class="n">03</span>Functionality and architecture</span><span class="dots"></span><span class="pg">2</span></li>
+      <li class="toc-h3"><span class="t">3.1&nbsp; Controls on the application layer</span><span class="dots"></span><span class="pg">2</span></li>
+      <li class="toc-h3"><span class="t">3.2&nbsp; Two ways to run it</span><span class="dots"></span><span class="pg">2</span></li>
+      <li class="toc-h3"><span class="t">3.3&nbsp; What was exercised on testnet</span><span class="dots"></span><span class="pg">2</span></li>
+      <li class="toc-h3"><span class="t">3.4&nbsp; Standards and interoperability</span><span class="dots"></span><span class="pg">2</span></li>
+      <li class="toc-h2"><span class="t"><span class="n">04</span>Testing</span><span class="dots"></span><span class="pg">3</span></li>
+      <li class="toc-h3"><span class="t">4.1&nbsp; Failure-mode tests (money and integrity paths)</span><span class="dots"></span><span class="pg">3</span></li>
+      <li class="toc-h3"><span class="t">4.2&nbsp; What testing does not cover</span><span class="dots"></span><span class="pg">3</span></li>
+      <li class="toc-h2"><span class="t"><span class="n">05</span>Performance and browser compatibility</span><span class="dots"></span><span class="pg">4</span></li>
+      <li class="toc-h3"><span class="t">5.1&nbsp; Payload and response time (measured)</span><span class="dots"></span><span class="pg">4</span></li>
+      <li class="toc-h3"><span class="t">5.2&nbsp; Browser compatibility</span><span class="dots"></span><span class="pg">4</span></li>
+      <li class="toc-h3"><span class="t">5.3&nbsp; Deployment and platform</span><span class="dots"></span><span class="pg">4</span></li>
+      <li class="toc-h2"><span class="t"><span class="n">06</span>Code quality and object-oriented design</span><span class="dots"></span><span class="pg">5</span></li>
+      <li class="toc-h3"><span class="t">6.1&nbsp; Contracts: types, encapsulation, typed errors</span><span class="dots"></span><span class="pg">5</span></li>
+      <li class="toc-h3"><span class="t">6.2&nbsp; Application: model, service layer, boundary</span><span class="dots"></span><span class="pg">5</span></li>
+      <li class="toc-h3"><span class="t">6.3&nbsp; Algorithms worth reading</span><span class="dots"></span><span class="pg">5</span></li>
+      <li class="toc-h3"><span class="t">6.4&nbsp; Project hygiene</span><span class="dots"></span><span class="pg">5</span></li>
+    </ol>
+  </div>
+  <div class="page-footer"><span>Oghenetejiri Jesse · African Leadership University</span><span>i</span></div>
+</div>
+
+<div class="page" id="page-1">
+  <div class="page-header"><span class="mark"><span class="bars"><i></i><i></i></span>AXK Network</span><span>Capstone Technical Report · ALU BSE 2026</span></div>
+  <div class="page-content">
     <h2 class="sec-title"><span class="n">01</span>Problem and approach</h2>
     <p>Cross-border agricultural trade between Rwanda, the DRC and Uganda fails at two points: a buyer cannot verify a lot's quality, custody and container integrity along the corridor, and settlement is slow and hard to trust. This project puts both in one workflow. A cooperative registers a lot, an independent inspector signs it off on-chain, a buyer locks payment in escrow, a carrier records dispatch under a container seal, the port checks the seal and records clearance, and on delivery confirmation the contracts release payment, split it 40/40/20 between members and write an attestation anyone can check through a QR code. Four Soroban contracts (lot registry, escrow, splitter, attestation) hold the rules; a Frappe v15 app holds the roles, screens and signing.</p>
     <h2 class="sec-title"><span class="n">02</span>Scope: planned versus delivered</h2>

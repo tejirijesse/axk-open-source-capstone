@@ -144,25 +144,95 @@ td.num { white-space: nowrap; }
 .page:not(#page-1) .page-content { font-size: 8.5pt; }
 .page:not(#page-1) table { font-size: 8pt; }
 
+/* cover page */
+.cover-page { background: var(--ink); color: #fff; padding: 20mm 20mm 18mm; }
+.cover-page::before, .cover-page::after { content: ""; position: absolute; border-radius: 50%; border: 0.6pt solid rgba(255,255,255,0.07); }
+.cover-page::before { width: 190mm; height: 190mm; right: -80mm; top: -50mm; box-shadow: 0 0 0 18mm rgba(255,255,255,0.02), 0 0 0 36mm rgba(255,255,255,0.015); }
+.cover-page::after { width: 90mm; height: 90mm; left: -45mm; bottom: -30mm; }
+.cv-top { display: flex; justify-content: space-between; align-items: center; position: relative; z-index: 1; }
+.cv-top .mark { color: #fff; font-size: 12pt; }
+.cv-date { font-size: 8pt; color: rgba(255,255,255,0.55); letter-spacing: 0.6px; }
+.cv-main { margin-top: 62mm; position: relative; z-index: 1; }
+.cover-page .kicker { font-size: 8pt; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--accent-2); margin-bottom: 6mm; }
+.cover-page h1 { font-size: 34pt; line-height: 1.08; font-weight: 700; letter-spacing: -0.5px; max-width: 150mm; margin-bottom: 7mm; }
+.cover-page .lede { font-size: 11.5pt; line-height: 1.5; color: rgba(255,255,255,0.72); max-width: 135mm; }
+.cv-rule { display: flex; gap: 5px; margin-top: 12mm; }
+.cv-rule i { display: block; height: 3.5px; width: 22mm; border-radius: 2px; background: var(--accent); }
+.cv-rule i + i { width: 12mm; background: var(--accent-2); }
+.cv-meta { margin-top: auto; position: relative; z-index: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 5mm 12mm; padding-top: 7mm; border-top: 0.6pt solid rgba(255,255,255,0.15); }
+.cv-meta dt { font-size: 6.8pt; text-transform: uppercase; letter-spacing: 1px; color: rgba(255,255,255,0.45); margin-bottom: 1px; }
+.cv-meta dd { font-size: 9pt; color: #fff; }
+
+/* contents page */
+.toc-kicker { font-size: 7.5pt; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--accent); margin: 16mm 0 3mm; }
+.toc-title { font-size: 22pt !important; margin: 0 0 12mm !important; letter-spacing: -0.3px; }
+.toc { list-style: none; padding: 0; }
+.toc li { display: flex; align-items: baseline; margin: 0; }
+.toc li::marker { content: none; }
+.toc .dots { flex: 1; border-bottom: 0.8pt dotted var(--rule); margin: 0 3mm; transform: translateY(-2px); }
+.toc .pg { color: var(--muted); font-variant-numeric: tabular-nums; }
+.toc-h2 { font-size: 11.5pt; font-weight: 600; color: var(--ink); padding: 4.5mm 0 2mm; border-top: 0.6pt solid var(--rule); margin-top: 2mm !important; }
+.toc-h2:first-child { border-top: none; }
+.toc-h2 .n { color: var(--accent); margin-right: 8px; }
+.toc-h2 .pg { color: var(--ink); font-weight: 600; }
+.toc-h3 { font-size: 9.5pt; color: var(--text); padding: 1.3mm 0 1.3mm 9mm; }
+
 </style>
 </head>
 <body>
-<div class="page" id="page-1">
+<div class="page cover-page">
+  <div class="cv-top"><span class="mark"><span class="bars"><i></i><i></i></span>AXK Network</span><span class="cv-date">October 2026</span></div>
+  <div class="cv-main">
+    <div class="kicker">Technical Report</div>
+    <h1>Verification &amp; Settlement Layer on Stellar</h1>
+    <div class="lede">Four Soroban smart contracts and a Frappe v15 application for verified cross-border agricultural trade between Rwanda, the DRC and Uganda.</div>
+    <div class="cv-rule"><i></i><i></i></div>
+  </div>
+  <dl class="cv-meta">
+    <div><dt>Student</dt><dd>Oghenetejiri Jesse</dd></div>
+    <div><dt>Supervisor</dt><dd>Junior Turatsinze</dd></div>
+    <div><dt>Programme</dt><dd>BSE Software Engineering Capstone</dd></div>
+    <div><dt>Institution</dt><dd>African Leadership University</dd></div>
+    <div><dt>Live system</dt><dd>capstone.axk.org</dd></div>
+    <div><dt>Demo video</dt><dd>youtu.be/MrSXiJG_MAU</dd></div>
+    <div><dt>Repository</dt><dd>github.com/tejirijesse/axk-open-source-capstone</dd></div>
+    <div><dt>Offline simulation</dt><dd>axk-open-source-capstone.vercel.app</dd></div>
+  </dl>
+</div>
+
+<div class="page toc-page">
+  <div class="page-header"><span class="mark"><span class="bars"><i></i><i></i></span>AXK Network</span><span>Capstone Technical Report · ALU BSE 2026</span></div>
   <div class="page-content">
-    <div class="cover">
-      <span class="mark"><span class="bars"><i></i><i></i></span>AXK Network</span>
-      <div class="kicker">ALU · BSE Software Engineering Capstone 2026</div>
-      <h1>Verification &amp; Settlement Layer on Stellar</h1>
-      <div class="lede">Technical report on four Soroban smart contracts and a Frappe v15 application for verified cross-border agricultural trade.</div>
-      <dl>
-        <div><dt>Student</dt><dd>Oghenetejiri Jesse</dd></div>
-        <div><dt>Supervisor</dt><dd>Junior Turatsinze</dd></div>
-        <div><dt>Live system</dt><dd>capstone.axk.org</dd></div>
-        <div><dt>Demo video</dt><dd>youtu.be/MrSXiJG_MAU</dd></div>
-        <div><dt>Repository</dt><dd>github.com/tejirijesse/axk-open-source-capstone</dd></div>
-        <div><dt>Offline simulation</dt><dd>axk-open-source-capstone.vercel.app</dd></div>
-      </dl>
-    </div>
+    <div class="toc-kicker">Contents</div>
+    <h2 class="toc-title">What this report covers</h2>
+    <ol class="toc">
+      <li class="toc-h2"><span class="t"><span class="n">01</span>Problem and approach</span><span class="dots"></span><span class="pg">1</span></li>
+      <li class="toc-h2"><span class="t"><span class="n">02</span>Scope: planned versus delivered</span><span class="dots"></span><span class="pg">1</span></li>
+      <li class="toc-h2"><span class="t"><span class="n">03</span>Functionality and architecture</span><span class="dots"></span><span class="pg">2</span></li>
+      <li class="toc-h3"><span class="t">3.1&nbsp; Controls on the application layer</span><span class="dots"></span><span class="pg">2</span></li>
+      <li class="toc-h3"><span class="t">3.2&nbsp; Two ways to run it</span><span class="dots"></span><span class="pg">2</span></li>
+      <li class="toc-h3"><span class="t">3.3&nbsp; What was exercised on testnet</span><span class="dots"></span><span class="pg">2</span></li>
+      <li class="toc-h3"><span class="t">3.4&nbsp; Standards and interoperability</span><span class="dots"></span><span class="pg">2</span></li>
+      <li class="toc-h2"><span class="t"><span class="n">04</span>Testing</span><span class="dots"></span><span class="pg">3</span></li>
+      <li class="toc-h3"><span class="t">4.1&nbsp; Failure-mode tests (money and integrity paths)</span><span class="dots"></span><span class="pg">3</span></li>
+      <li class="toc-h3"><span class="t">4.2&nbsp; What testing does not cover</span><span class="dots"></span><span class="pg">3</span></li>
+      <li class="toc-h2"><span class="t"><span class="n">05</span>Performance and browser compatibility</span><span class="dots"></span><span class="pg">4</span></li>
+      <li class="toc-h3"><span class="t">5.1&nbsp; Payload and response time (measured)</span><span class="dots"></span><span class="pg">4</span></li>
+      <li class="toc-h3"><span class="t">5.2&nbsp; Browser compatibility</span><span class="dots"></span><span class="pg">4</span></li>
+      <li class="toc-h3"><span class="t">5.3&nbsp; Deployment and platform</span><span class="dots"></span><span class="pg">4</span></li>
+      <li class="toc-h2"><span class="t"><span class="n">06</span>Code quality and object-oriented design</span><span class="dots"></span><span class="pg">5</span></li>
+      <li class="toc-h3"><span class="t">6.1&nbsp; Contracts: types, encapsulation, typed errors</span><span class="dots"></span><span class="pg">5</span></li>
+      <li class="toc-h3"><span class="t">6.2&nbsp; Application: model, service layer, boundary</span><span class="dots"></span><span class="pg">5</span></li>
+      <li class="toc-h3"><span class="t">6.3&nbsp; Algorithms worth reading</span><span class="dots"></span><span class="pg">5</span></li>
+      <li class="toc-h3"><span class="t">6.4&nbsp; Project hygiene</span><span class="dots"></span><span class="pg">5</span></li>
+    </ol>
+  </div>
+  <div class="page-footer"><span>Oghenetejiri Jesse · African Leadership University</span><span>i</span></div>
+</div>
+
+<div class="page" id="page-1">
+  <div class="page-header"><span class="mark"><span class="bars"><i></i><i></i></span>AXK Network</span><span>Capstone Technical Report · ALU BSE 2026</span></div>
+  <div class="page-content">
     <h2 class="sec-title"><span class="n">01</span>Problem and approach</h2>
     <p>Cross-border agricultural trade between Rwanda, the DRC and Uganda fails at two points: a buyer cannot verify a lot's quality, custody and container integrity along the corridor, and settlement is slow and hard to trust. This project puts both in one workflow. A cooperative registers a lot, an independent inspector signs it off on-chain, a buyer locks payment in escrow, a carrier records dispatch under a container seal, the port checks the seal and records clearance, and on delivery confirmation the contracts release payment, split it 40/40/20 between members and write an attestation anyone can check through a QR code. Four Soroban contracts (lot registry, escrow, splitter, attestation) hold the rules; a Frappe v15 app holds the roles, screens and signing.</p>
     <h2 class="sec-title"><span class="n">02</span>Scope: planned versus delivered</h2>
