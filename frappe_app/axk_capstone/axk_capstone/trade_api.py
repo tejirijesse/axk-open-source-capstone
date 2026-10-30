@@ -37,6 +37,9 @@ FIELDS = ["name", "lot_ref", "status", "commodity", "variety", "declared_grade",
           "port_name", "container_id", "customs_ref", "seal_verified",
           "registered_at", "inspected_at", "funded_at", "dispatched_at", "port_received_at", "settled_at",
           "reject_reason", "modified"]
+TX_FIELDS = ["register_tx", "inspect_tx", "fund_tx", "dispatch_tx", "port_tx",
+             "release_tx", "split_tx", "distribute_tx", "attest_tx"]
+FIELDS += TX_FIELDS
 
 
 def _direct_local_request():
@@ -108,6 +111,7 @@ def _row(d):
         "port_received_at": _iso(d.port_received_at), "settled_at": _iso(d.settled_at),
         "reject_reason": d.reject_reason,
         "modified": _iso(d.modified),
+        "txs": [d.get(f) or "" for f in TX_FIELDS],
     }
 
 

@@ -1,0 +1,68 @@
+{% extends "templates/axk_lean.html" %}
+{% from "templates/includes/icons.html" import icon %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block style %}
+<link rel="stylesheet" href="/assets/axk_capstone/css/axk.css?v={{ css_v }}">
+{% endblock %}
+
+{% block page_content %}
+<div class="xl" id="xl" data-explorer="{{ 1 if axk_explorer else 0 }}">
+  <section class="xl-brand" aria-label="About AXK Trade">
+    <div class="xl-mark"><i aria-hidden="true">{{ icon("verify", 14) }}</i>AXK Trade</div>
+    <div class="xl-hero">
+      <h1>Nothing without its receipt.</h1>
+      <p>Every step of a coffee lot, from the cooperative to the buyer, leaves a transaction on Stellar that anyone can check.</p>
+    </div>
+    <div class="xl-specimen" id="xl-specimen" aria-label="Example custody record">
+      <div class="xl-specimen-meta"><span>{% if specimen %}Latest settled lot{% else %}Custody record{% endif %}</span>{% if specimen %}<span class="xt-mono">{{ specimen.lot_ref }}</span>{% endif %}</div>
+      <div class="xt-notches">
+        {% for s in steps %}
+        {% set tx = specimen.txs[loop.index0] if specimen else "" %}
+        {% if tx and axk_explorer %}
+        <a class="xt-cell" href="https://stellar.expert/explorer/testnet/tx/{{ tx }}" target="_blank" rel="noopener" aria-label="{{ s }}, transaction {{ tx[:6] }}, opens Stellar Expert"><i class="xt-notch" data-fill="1"></i><span class="xt-lbl">{{ s }}</span></a>
+        {% else %}
+        <div class="xt-cell"><i class="xt-notch"{% if tx %} data-fill="1"{% endif %}></i><span class="xt-lbl">{{ s }}</span></div>
+        {% endif %}
+        {% endfor %}
+      </div>
+    </div>
+    <div class="xl-foot">ALU Capstone 2026</div>
+  </section>
+
+  <main class="xl-form">
+    <div class="xl-col">
+      <div>
+        <h1>Sign in</h1>
+        <p class="xl-sub">Use your AXK Trade account.</p>
+      </div>
+      <form id="xl-form" class="xl-fields" novalidate>
+        <div class="xt-field">
+          <label for="xl-usr">Email</label>
+          <input id="xl-usr" class="xt-input" type="text" name="usr" autocomplete="username" autocapitalize="none" spellcheck="false" required autofocus>
+        </div>
+        <div class="xt-field">
+          <label for="xl-pwd">Password</label>
+          <div class="xl-pw">
+            <input id="xl-pwd" class="xt-input" type="password" name="pwd" autocomplete="current-password" required>
+            <button type="button" id="xl-show" aria-controls="xl-pwd" aria-pressed="false">Show</button>
+          </div>
+          <div class="xt-err" id="xl-err" role="alert"></div>
+        </div>
+        <button class="xt-btn block" type="submit" id="xl-go">Sign in</button>
+      </form>
+      <div class="xl-demo" id="xl-demo" hidden>
+        <h2>Demo accounts</h2>
+        <p class="xl-hint" id="xl-hint">Choose a role to fill the form.</p>
+        <div class="xl-list" id="xl-list" role="list"></div>
+      </div>
+      <a class="xt-btn ghost" href="/trace">Verify a lot without signing in</a>
+    </div>
+  </main>
+</div>
+{% endblock %}
+
+{% block script %}
+<script src="/assets/axk_capstone/js/login.js?v={{ login_js_v }}"></script>
+{% endblock %}

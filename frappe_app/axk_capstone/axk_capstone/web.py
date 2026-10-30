@@ -35,6 +35,12 @@ def page(context, active, title):
     context.axk_active = active
     context.axk_network = (frappe.conf.get("axk_stellar") or {}).get("network", "testnet")
     context.axk_demo = bool(frappe.conf.get("axk_demo_mode"))
+    user = frappe.session.user
+    if user and user != "Guest":
+        name = frappe.utils.get_fullname(user) or user
+        context.axk_user = user
+        context.axk_user_name = name
+        context.axk_initials = "".join(w[0] for w in name.split()[:2]).upper() or "?"
     context.css_v = _stamp("css/axk.css")
     context.chain_css_v = _stamp("css/chain.css")
     context.js_v = _stamp("js/trade.js")

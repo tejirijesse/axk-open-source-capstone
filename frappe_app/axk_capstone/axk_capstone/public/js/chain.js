@@ -35,6 +35,32 @@
     for (const kid of kids.flat()) if (kid != null) n.append(kid);
     return n;
   }
+  // Lucide paths, static markup only.
+  const ICONS = {
+    "circle-check": '<circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/>',
+    "circle-x": '<circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/>',
+    "circle-dashed": '<path d="M10.1 2.182a10 10 0 0 1 3.8 0"/><path d="M13.9 21.818a10 10 0 0 1-3.8 0"/><path d="M17.609 3.721a10 10 0 0 1 2.69 2.7"/><path d="M2.182 13.9a10 10 0 0 1 0-3.8"/><path d="M20.279 17.609a10 10 0 0 1-2.7 2.69"/><path d="M21.818 10.1a10 10 0 0 1 0 3.8"/><path d="M3.721 6.391a10 10 0 0 1 2.7-2.69"/><path d="M6.391 20.279a10 10 0 0 1-2.69-2.7"/>',
+    "circle-dot": '<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="1"/>',
+    "circle-alert": '<circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/>',
+    "arrow-up-right": '<path d="M7 7h10v10"/><path d="M7 17 17 7"/>',
+    "undo-2": '<path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5 5.5 5.5 0 0 1-5.5 5.5H11"/>',
+    "lock": '<rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
+    "shield-check": '<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/>',
+    "shield-x": '<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m14.5 9.5-5 5"/><path d="m9.5 9.5 5 5"/>',
+  };
+  function icon(name, size) {
+    const n = s("svg", { width: size || 16, height: size || 16, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor",
+      "stroke-width": 1.75, "stroke-linecap": "round", "stroke-linejoin": "round", "aria-hidden": "true", focusable: "false" });
+    n.innerHTML = ICONS[name];
+    return n;
+  }
+  const ic = (name, tone) => el("span", { class: "cx-ic" + (tone ? " " + tone : "") }, icon(name, 14));
+  // Series: anchored/on-chain is green, everything else the graphite ramp.
+  const SERIES = { on: "--chart-proof", g1: "--chart-g1", g2: "--chart-g2", g3: "--chart-g3" };
+  const col = (cls) => css(SERIES[cls]);
+  function verdict(kind, iconName, text) {
+    return el("div", { class: "tr-verdict " + kind }, icon(iconName, 18), el("span", { text }));
+  }
   function stext(attrs, str) { const t = s("text", attrs); t.textContent = str; return t; }
 
   async function get(method, params) {
@@ -54,7 +80,7 @@
   function showTip(evt, value, label, rows) {
     tip.replaceChildren(el("div", { class: "tv", text: value }), el("div", { class: "tl", text: label }));
     for (const r of rows || []) {
-      tip.append(el("div", { class: "row" }, el("i", { class: "key", style: "background:" + r.color }), el("span", { text: r.text })));
+      tip.append(el("div", { class: "row" }, el("i", { class: "key " + r.cls }), el("span", { text: r.text })));
     }
     tip.hidden = false;
     let x, y;
@@ -85,7 +111,7 @@
 
   function legend(items) {
     return el("div", { class: "cx-legend" },
-      items.map((i) => el("span", {}, el("i", { style: "background:" + i.color }), i.label)));
+      items.map((i) => el("span", {}, el("i", { class: "sw-" + i.cls }), i.label)));
   }
 
   function tableFrom(headers, rows) {
@@ -95,15 +121,7 @@
   }
 
   // ---------- 1. live testnet ----------
-  function kindColors() {
-    return {
-      "Token issued": css("--neutral-fill"),
-      "Escrow funded": css("--series-1"),
-      "Escrow released": css("--series-3"),
-      "Split payout": css("--series-2"),
-      Transfer: css("--neutral-fill"),
-    };
-  }
+  const KIND_CLS = { "Token issued": "g3", "Escrow funded": "g1", "Escrow released": "on", "Split payout": "g2", Transfer: "g3" };
 
   function renderLive() {
     const d = state.live;
@@ -130,17 +148,17 @@
     document.getElementById("live-meta").textContent =
       ev.length + " token events since ledger " + nf.format(d.window_start_ledger) + ". Newest first.";
 
-    const colors = kindColors();
     const rows = ev.slice().reverse().map((e) => el("tr", {},
       el("td", { text: new Date(e.time).toLocaleString() }),
-      el("td", {}, el("span", { class: "cx-kind" }, el("i", { style: "background:" + colors[e.kind] }), e.kind)),
-      el("td", { text: e.from.name + " → " + e.to.name }),
+      el("td", {}, el("span", { class: "cx-kind " + (KIND_CLS[e.kind] || "g3") }, el("i"), e.kind)),
+      el("td", { text: e.from.name }),
+      el("td", { text: e.to.name }),
       el("td", { class: "num", text: nf.format(e.amount) }),
       el("td", { class: "num", text: nf.format(e.ledger) }),
       el("td", {}, el("a", { href: e.tx_url, target: "_blank", rel: "noopener", text: short(e.tx, 8) }))));
     table.replaceChildren(
-      el("thead", {}, el("tr", {}, ["Time", "Event", "From → To", "RWF", "Ledger", "Transaction"].map((h, i) =>
-        el("th", { class: i === 3 || i === 4 ? "num" : "", text: h })))),
+      el("thead", {}, el("tr", {}, ["Time", "Event", "From", "To", "RWF", "Ledger", "Transaction"].map((h, i) =>
+        el("th", { class: i === 4 || i === 5 ? "num" : "", text: h })))),
       el("tbody", {}, rows));
 
     renderFlow(flowBox, ev, funded, released);
@@ -157,10 +175,10 @@
     const waiting = Math.max(0, reg - passed - failed);
     summary.replaceChildren(
       el("span", { class: "cx-vs" }, el("b", { text: nf.format(reg) }), " registered"),
-      el("span", { class: "cx-vs good" }, el("b", { text: "✓ " + nf.format(passed) }), " passed"),
-      el("span", { class: "cx-vs bad" }, el("b", { text: "✕ " + nf.format(failed) }), " rejected"),
-      el("span", { class: "cx-vs" }, el("b", { text: "○ " + nf.format(waiting) }), " awaiting inspection"),
-      d.registry_url ? el("a", { href: d.registry_url, target: "_blank", rel: "noopener", class: "cx-vs-link", text: "Lot registry contract ↗" }) : null);
+      el("span", { class: "cx-vs good" }, ic("circle-check", "ok"), el("b", { text: nf.format(passed) }), " passed"),
+      el("span", { class: "cx-vs bad" }, ic("circle-x", "bad"), el("b", { text: nf.format(failed) }), " rejected"),
+      el("span", { class: "cx-vs" }, ic("circle-dashed"), el("b", { text: nf.format(waiting) }), " awaiting inspection"),
+      d.registry_url ? el("a", { href: d.registry_url, target: "_blank", rel: "noopener", class: "cx-vs-link" }, "Lot registry contract", icon("arrow-up-right", 14)) : null);
     if (!rows.length) { table.replaceChildren(); summary.append(el("div", { class: "cx-empty", text: "No lot registry activity in the RPC window yet." })); return; }
     table.replaceChildren(
       el("thead", {}, el("tr", {}, ["Time", "Event", "Lot", "Signed by", "Result", "Transaction"].map((h) => el("th", { text: h })))),
@@ -169,7 +187,7 @@
         el("td", { text: r.kind }),
         el("td", {}, r.lot_ref ? el("a", { href: "/trace/lot?ref=" + encodeURIComponent(r.lot_ref), text: r.lot_ref }) : el("span", { class: "cx-mono", text: short(r.lot_id, 8) })),
         el("td", { text: r.actor.name }),
-        el("td", {}, r.passed === null ? "" : el("span", { class: r.passed ? "cx-result pass" : "cx-result fail", text: r.passed ? "✓ passed" : "✕ rejected" })),
+        el("td", {}, r.passed === null ? "" : el("span", { class: r.passed ? "cx-result pass" : "cx-result fail" }, icon(r.passed ? "circle-check" : "circle-x", 14), r.passed ? "passed" : "rejected")),
         el("td", {}, el("a", { href: r.tx_url, target: "_blank", rel: "noopener", text: short(r.tx, 8) }))))));
   }
 
@@ -208,7 +226,7 @@
       .filter((l) => l[2] > 0 && byId[l[0]] && byId[l[1]]);
 
     const svg = s("svg", { viewBox: "0 0 " + W + " " + H });
-    const ribbon = css("--series-1");
+    const ribbon = css("--chart-g3");
     links.forEach(([a, b, v]) => {
       const A = byId[a], B = byId[b], h = scale(v);
       const y0 = A.y + (out[a] || 0), y1 = B.y + (inn[b] || 0);
@@ -217,18 +235,18 @@
       const d = "M" + x0 + "," + y0 + " C" + mx + "," + y0 + " " + mx + "," + y1 + " " + x1 + "," + y1 +
         " L" + x1 + "," + (y1 + h) + " C" + mx + "," + (y1 + h) + " " + mx + "," + (y0 + h) + " " + x0 + "," + (y0 + h) + " Z";
       const g = s("g", {});
-      g.append(s("path", { d, class: "cx-mark", fill: B.pending ? "none" : ribbon, "fill-opacity": 0.18,
-        stroke: B.pending ? css("--text-muted") : "none", "stroke-dasharray": B.pending ? "4 3" : null }));
-      hoverable(g, (e) => showTip(e, rwf(v), A.name + " → " + B.name));
+      g.append(s("path", { d, class: "cx-mark", fill: B.pending ? "none" : ribbon, "fill-opacity": 0.45,
+        stroke: B.pending ? css("--ink-3") : "none", "stroke-dasharray": B.pending ? "4 3" : null }));
+      hoverable(g, (e) => showTip(e, rwf(v), A.name + " to " + B.name));
       svg.append(g);
     });
     nodes.forEach((n) => {
       svg.append(s("rect", { x: n.x, y: n.y, width: nodeW, height: n.h, rx: 3,
-        fill: n.pending ? "none" : css("--brand"), stroke: n.pending ? css("--text-muted") : "none",
+        fill: n.pending ? "none" : css("--chart-proof"), stroke: n.pending ? css("--ink-3") : "none",
         "stroke-dasharray": n.pending ? "3 2" : null }));
       const tx = n.x + nodeW + 6, ty = n.y + Math.min(n.h / 2, 14);
-      svg.append(stext({ x: tx, y: ty, "font-size": 12, "font-weight": 600, fill: css("--text-primary"), "dominant-baseline": "middle" }, n.name));
-      svg.append(stext({ x: tx, y: ty + 15, "font-size": 11, fill: css("--text-secondary"), "dominant-baseline": "middle" }, rwf(n.v)));
+      svg.append(stext({ x: tx, y: ty, "font-size": 12, "font-weight": 600, fill: css("--ink"), "dominant-baseline": "middle" }, n.name));
+      svg.append(stext({ x: tx, y: ty + 15, "font-size": 11, fill: css("--ink-2"), "dominant-baseline": "middle" }, rwf(n.v)));
     });
     box.replaceChildren(svg);
   }
@@ -252,8 +270,8 @@
     summary.replaceChildren(el("span", { text: lot.name + " · " + lot.commodity_type + " · " + lot.cooperative_name + " · " + events.length + " events" }));
     if (results) {
       summary.append(brokenAt === -1
-        ? el("span", { class: "cx-status good", text: "✓ All " + events.length + " hashes recomputed and linked" })
-        : el("span", { class: "cx-status bad", text: "✕ Chain broken at event " + (brokenAt + 1) + ": " + (events.length - brokenAt) + " events can no longer be trusted" }));
+        ? verdict("ok", "shield-check", "All " + events.length + " hashes recomputed and linked.")
+        : verdict("bad", "shield-x", "Chain broken at event " + (brokenAt + 1) + ": " + (events.length - brokenAt) + " events can no longer be trusted."));
     }
 
     list.replaceChildren(...events.map((e, i) => {
@@ -262,19 +280,24 @@
       const hashes = el("div", { class: "cx-hashes" },
         el("span", { text: "prev       " + short(e.prev_hash, 16) }),
         el("span", { text: "stored     " + short(e.event_hash, 16) }));
-      if (r) hashes.append(el("span", { class: r.hashOk ? "" : "bad", text: "recomputed " + short(r.computed, 16) + (r.hashOk ? " ✓" : "  ≠ stored") }));
+      if (r) {
+        hashes.append(el("span", { class: r.hashOk ? "" : "bad", text: "recomputed " + short(r.computed, 16) }));
+        hashes.append(r.hashOk
+          ? el("span", { class: "good" }, ic("circle-check", "ok"), "Recomputed, linked")
+          : el("span", { class: "bad" }, ic("circle-x", "bad"), "Differs from stored"));
+      }
       if (r && !r.linkOk && !r.afterBreak) hashes.append(el("span", { class: "bad", text: "prev_hash does not match the event before it" }));
       if (r && r.afterBreak) hashes.append(el("span", { class: "bad", text: "unverifiable: an earlier event failed" }));
       const anchor = e.anchor_chain === "xahau" ? "anchored (synthetic Xahau ref " + short(e.xrpl_tx_hash, 6) + ")" : "off-chain";
-      const mark = e.result === "pass" ? "✓ " : e.result === "fail" ? "✕ " : "◐ ";
+      const mark = e.result === "pass" ? "circle-check" : e.result === "fail" ? "circle-x" : "circle-dot";
       return el("li", { class: cls },
         el("div", { class: "cx-node", text: String(e.sequence_no) }),
         el("div", { class: "cx-event-body" },
           el("div", { class: "cx-event-top" },
             el("b", { text: pretty(e.seed_event_type) }),
-            el("span", { class: "cx-result " + e.result, text: mark + e.result })),
+            el("span", { class: "cx-result " + e.result }, icon(mark, 14), e.result)),
           el("div", { class: "cx-event-meta", text: e.confirmed_at + " · " + e.actor_name + " (" + e.verifier_role + ") · " + e.location + " · " + anchor }),
-          state.tampered === i ? el("div", { class: "cx-event-meta", style: "color:var(--critical-text)", text: "Tampered: " + state.tamperNote }) : null,
+          state.tampered === i ? el("div", { class: "cx-event-meta bad", text: "Tampered: " + state.tamperNote }) : null,
           hashes));
     }));
   }
@@ -329,8 +352,8 @@
   function axisY(svg, x0, x1, yScale, max, ticks, fmt) {
     for (let i = 0; i <= ticks; i++) {
       const v = (max / ticks) * i, y = yScale(v);
-      svg.append(s("line", { x1: x0, x2: x1, y1: y, y2: y, stroke: i ? css("--grid") : css("--axis"), "stroke-width": 1 }));
-      svg.append(stext({ x: x0 - 6, y, "font-size": 11, fill: css("--text-muted"), "text-anchor": "end", "dominant-baseline": "middle" }, fmt(v)));
+      svg.append(s("line", { x1: x0, x2: x1, y1: y, y2: y, stroke: i ? css("--chart-grid") : css("--control"), "stroke-width": 1 }));
+      svg.append(stext({ x: x0 - 6, y, "font-size": 11, "font-weight": 500, fill: css("--ink-3"), "text-anchor": "end", "dominant-baseline": "middle" }, fmt(v)));
     }
   }
 
@@ -351,7 +374,7 @@
       data.push(byMonth[key] || { month: key, anchored: 0, offchain: 0 });
       if (key === last) break;
     }
-    const cA = css("--series-1"), cO = css("--neutral-fill");
+    const cA = col("on"), cO = col("g3");
     const W = Math.max(520, box.clientWidth || 900), H = 240, L = 40, R = 8, T = 10, B = 26;
     const max = niceMax(Math.max(...data.map((m) => m.anchored + m.offchain)));
     const y = (v) => T + (H - T - B) * (1 - v / max);
@@ -366,11 +389,11 @@
       if (m.offchain) g.append(s("rect", { class: "cx-mark", x, y: yo, width: bw, height: Math.max(0, ya - yo - (m.anchored ? 2 : 0)), fill: cO, rx: r }));
       g.append(s("rect", { x: L + i * step, y: T, width: step, height: H - T - B, fill: "transparent" }));
       hoverable(g, (e) => showTip(e, nf.format(m.anchored + m.offchain) + " events", m.month,
-        [{ color: cA, text: nf.format(m.anchored) + " anchored on Xahau" }, { color: cO, text: nf.format(m.offchain) + " off-chain" }]));
+        [{ cls: "on", text: nf.format(m.anchored) + " anchored on Xahau" }, { cls: "g3", text: nf.format(m.offchain) + " off-chain" }]));
       svg.append(g);
-      if (m.month.endsWith("-01")) svg.append(stext({ x: x + bw / 2, y: H - 8, "font-size": 11, fill: css("--text-muted"), "text-anchor": "middle" }, m.month.slice(0, 4)));
+      if (m.month.endsWith("-01")) svg.append(stext({ x: x + bw / 2, y: H - 8, "font-size": 11, "font-weight": 500, fill: css("--ink-3"), "text-anchor": "middle" }, m.month.slice(0, 4)));
     });
-    box.replaceChildren(legend([{ color: cA, label: "Anchored on Xahau" }, { color: cO, label: "Hash-chained, off-chain" }]), svg);
+    box.replaceChildren(legend([{ cls: "on", label: "Anchored on Xahau" }, { cls: "g3", label: "Hash-chained, off-chain" }]), svg);
     state.tables["chart-monthly"] = () => tableFrom(["Month", "Anchored", "Off-chain", "Total"],
       data.map((m) => [m.month, nf.format(m.anchored), nf.format(m.offchain), nf.format(m.anchored + m.offchain)]));
   }
@@ -378,22 +401,22 @@
   function renderCompletion() {
     const box = document.getElementById("chart-completion");
     const data = state.overview.completion;
-    const c = css("--series-1");
+    const c = col("g1");
     const W = Math.max(320, box.clientWidth || 480), rowH = 44, L = 124, R = 64, H = data.length * rowH + 8;
     const max = niceMax(Math.max(...data.map((d) => d.hours)));
     const x = (v) => L + (W - L - R) * (v / max);
     const svg = s("svg", { viewBox: "0 0 " + W + " " + H });
-    svg.append(s("line", { x1: L, x2: L, y1: 0, y2: H, stroke: css("--axis") }));
+    svg.append(s("line", { x1: L, x2: L, y1: 0, y2: H, stroke: css("--control") }));
     data.forEach((d, i) => {
       const y = 8 + i * rowH, bh = 20, g = s("g", {});
       const w = Math.max(4, x(d.hours) - L);
       g.append(s("path", { class: "cx-mark", fill: c,
         d: "M" + L + "," + y + " h" + (w - 4) + " a4,4 0 0 1 4,4 v" + (bh - 8) + " a4,4 0 0 1 -4,4 h" + (-(w - 4)) + " Z" }));
       g.append(s("rect", { x: 0, y: y - 8, width: W, height: rowH - 4, fill: "transparent" }));
-      hoverable(g, (e) => showTip(e, nf1.format(d.hours) + " h", d.label, [{ color: c, text: nf.format(d.n) + " settled orders" }]));
+      hoverable(g, (e) => showTip(e, nf1.format(d.hours) + " h", d.label, [{ cls: "g1", text: nf.format(d.n) + " settled orders" }]));
       svg.append(g);
-      svg.append(stext({ x: L - 8, y: y + bh / 2, "font-size": 12, fill: css("--text-secondary"), "text-anchor": "end", "dominant-baseline": "middle" }, d.label));
-      svg.append(stext({ x: L + w + 6, y: y + bh / 2, "font-size": 12, "font-weight": 600, fill: css("--text-primary"), "dominant-baseline": "middle" }, nf1.format(d.hours) + " h"));
+      svg.append(stext({ x: L - 8, y: y + bh / 2, "font-size": 12, "font-weight": 500, fill: css("--ink-2"), "text-anchor": "end", "dominant-baseline": "middle" }, d.label));
+      svg.append(stext({ x: L + w + 6, y: y + bh / 2, "font-size": 12, "font-weight": 600, fill: css("--ink"), "dominant-baseline": "middle" }, nf1.format(d.hours) + " h"));
     });
     box.replaceChildren(svg);
     state.tables["chart-completion"] = () => tableFrom(["Channel", "Mean hours", "Orders"], data.map((d) => [d.label, nf1.format(d.hours), nf.format(d.n)]));
@@ -403,32 +426,35 @@
     const box = document.getElementById("chart-escrow");
     const st = state.overview.escrow_status;
     const W = Math.max(320, box.clientWidth || 480), H = 230;
-    const neutral = css("--text-secondary");
+    const neutral = css("--chart-g2");
     const gap = 34, bw = Math.min(150, (W - 8 - 2 * gap) / 3), bh = 46;
     const colX = [4, 4 + bw + gap, W - 4 - bw];
     const rowY = [4, (H - bh) / 2, H - bh - 4];
     const nodes = {
-      Pending: { c: 0, r: 1, label: "Created", icon: "○", color: neutral },
-      Locked: { c: 1, r: 1, label: "Funded", icon: "◷", color: neutral },
-      Released: { c: 2, r: 0, label: "Released", icon: "✓", color: css("--good") },
-      Disputed: { c: 2, r: 1, label: "Disputed", icon: "!", color: css("--critical") },
-      Cancelled: { c: 2, r: 2, label: "Refunded", icon: "↩", color: css("--serious") },
+      Pending: { c: 0, r: 1, label: "Created", icon: "circle-dashed", color: neutral },
+      Locked: { c: 1, r: 1, label: "Funded", icon: "lock", color: neutral },
+      Released: { c: 2, r: 0, label: "Released", icon: "circle-check", color: css("--chart-proof") },
+      Disputed: { c: 2, r: 1, label: "Disputed", icon: "circle-alert", color: css("--danger") },
+      Cancelled: { c: 2, r: 2, label: "Refunded", icon: "undo-2", color: css("--warn") },
     };
     const P = (k) => ({ x: colX[nodes[k].c], y: rowY[nodes[k].r] });
     const svg = s("svg", { viewBox: "0 0 " + W + " " + H });
     svg.append(s("defs", {}, s("marker", { id: "cx-arrow", viewBox: "0 0 10 10", refX: 9, refY: 5, markerWidth: 6, markerHeight: 6, orient: "auto-start-reverse" },
-      s("path", { d: "M0,0 L10,5 L0,10 z", fill: css("--axis") }))));
+      s("path", { d: "M0,0 L10,5 L0,10 z", fill: css("--control") }))));
     [["Pending", "Locked"], ["Locked", "Released"], ["Locked", "Disputed"], ["Locked", "Cancelled"]].forEach(([a, b]) => {
       const A = P(a), B = P(b);
       const x0 = A.x + bw, y0 = A.y + bh / 2, x1 = B.x - 2, y1 = B.y + bh / 2, mx = (x0 + x1) / 2;
       svg.append(s("path", { d: "M" + x0 + "," + y0 + " C" + mx + "," + y0 + " " + mx + "," + y1 + " " + x1 + "," + y1,
-        fill: "none", stroke: css("--axis"), "stroke-width": 2, "marker-end": "url(#cx-arrow)" }));
+        fill: "none", stroke: css("--control"), "stroke-width": 2, "marker-end": "url(#cx-arrow)" }));
     });
     Object.entries(nodes).forEach(([k, n]) => {
       const p = P(k), g = s("g", {}), count = st[k] || 0;
-      g.append(s("rect", { class: "cx-mark", x: p.x, y: p.y, width: bw, height: bh, rx: 8, fill: css("--surface-1"), stroke: n.color, "stroke-width": 2 }));
-      g.append(stext({ x: p.x + 12, y: p.y + 19, "font-size": 12, "font-weight": 600, fill: css("--text-primary") }, n.icon + "  " + n.label));
-      g.append(stext({ x: p.x + 12, y: p.y + 36, "font-size": 12, fill: css("--text-secondary") }, nf.format(count) + (count === 1 ? " escrow" : " escrows")));
+      g.append(s("rect", { class: "cx-mark", x: p.x, y: p.y, width: bw, height: bh, rx: 8, fill: css("--paper"), stroke: n.color, "stroke-width": 1.5 }));
+      const gi = icon(n.icon, 14);
+      gi.setAttribute("x", p.x + 10); gi.setAttribute("y", p.y + 8); gi.setAttribute("color", n.color);
+      g.append(gi);
+      g.append(stext({ x: p.x + 30, y: p.y + 19, "font-size": 12, "font-weight": 600, fill: css("--ink") }, n.label));
+      g.append(stext({ x: p.x + 30, y: p.y + 36, "font-size": 12, fill: css("--ink-2") }, nf.format(count) + (count === 1 ? " escrow" : " escrows")));
       hoverable(g, (e) => showTip(e, nf.format(count) + " escrows", n.label));
       svg.append(g);
     });
@@ -438,27 +464,28 @@
   function renderShare() {
     const box = document.getElementById("chart-share");
     const groups = state.overview.channel_groups, data = state.overview.share;
-    const colors = groups.map((_, i) => css("--series-" + (i + 1)));
+    const ramp = ["g1", "g2", "g3", "on"], onDark = [true, true, false, true];
+    const colors = groups.map((_, i) => col(ramp[i % ramp.length]));
     const W = Math.max(520, box.clientWidth || 900), rowH = 34, L = 44, R = 8, H = data.length * rowH + 4;
     const svg = s("svg", { viewBox: "0 0 " + W + " " + H });
     data.forEach((row, ri) => {
       const total = groups.reduce((a, g) => a + (row[g] || 0), 0);
       const y = 2 + ri * rowH, bh = rowH - 10;
       let x = L;
-      svg.append(stext({ x: L - 8, y: y + bh / 2, "font-size": 12, fill: css("--text-secondary"), "text-anchor": "end", "dominant-baseline": "middle" }, row.year));
+      svg.append(stext({ x: L - 8, y: y + bh / 2, "font-size": 12, "font-weight": 500, fill: css("--ink-2"), "text-anchor": "end", "dominant-baseline": "middle" }, row.year));
       const segs = groups.map((g, gi) => ({ g, gi, v: row[g] || 0 })).filter((q) => q.v);
       segs.forEach((q, si) => {
         const full = (W - L - R) * (q.v / total), w = Math.max(1, full - (si < segs.length - 1 ? 2 : 0));
         const g = s("g", {});
         g.append(s("rect", { class: "cx-mark", x, y, width: w, height: bh, fill: colors[q.gi], rx: si === segs.length - 1 ? 4 : 0 }));
         const pct = Math.round((q.v / total) * 100);
-        if (w > 38) g.append(stext({ x: x + 6, y: y + bh / 2, "font-size": 11, "font-weight": 600, fill: "#0b0b0b", "dominant-baseline": "middle" }, pct + "%"));
-        hoverable(g, (e) => showTip(e, pct + "%", q.g + ", " + row.year, [{ color: colors[q.gi], text: nf.format(q.v) + " of " + nf.format(total) + " settled orders" }]));
+        if (w > 38) g.append(stext({ x: x + 6, y: y + bh / 2, "font-size": 11, "font-weight": 600, fill: css(onDark[q.gi % ramp.length] ? "--field" : "--ink"), "dominant-baseline": "middle" }, pct + "%"));
+        hoverable(g, (e) => showTip(e, pct + "%", q.g + ", " + row.year, [{ cls: ramp[q.gi % ramp.length], text: nf.format(q.v) + " of " + nf.format(total) + " settled orders" }]));
         svg.append(g);
         x += full;
       });
     });
-    box.replaceChildren(legend(groups.map((g, i) => ({ color: colors[i], label: g }))), svg);
+    box.replaceChildren(legend(groups.map((g, i) => ({ cls: ramp[i % ramp.length], label: g }))), svg);
     state.tables["chart-share"] = () => tableFrom(["Year"].concat(groups, ["Total"]),
       data.map((r) => [r.year].concat(groups.map((g) => nf.format(r[g] || 0)), [nf.format(groups.reduce((a, g) => a + (r[g] || 0), 0))])));
   }
@@ -480,6 +507,40 @@
   const picker = document.getElementById("lot-picker");
   picker.addEventListener("change", (e) => loadLot(e.target.value).then(verify));
 
+  // ---------- tabs ----------
+  const TABS = ["live", "chain", "history"];
+  function showTab(name, focus) {
+    if (TABS.indexOf(name) < 0) name = "live";
+    TABS.forEach((t) => {
+      const on = t === name, tab = document.getElementById("tab-" + t);
+      tab.setAttribute("aria-selected", on ? "true" : "false");
+      tab.tabIndex = on ? 0 : -1;
+      document.getElementById("panel-" + t).hidden = !on;
+      if (on && focus) tab.focus();
+    });
+    // Charts are sized from their box, which is zero while hidden.
+    if (name === "history" && state.overview) renderHistory();
+    if (name === "live" && state.live) renderLive();
+  }
+  document.querySelector(".cx-tabs").addEventListener("click", (e) => {
+    const t = e.target.closest("[data-tab]");
+    if (t) { history.replaceState(null, "", "#" + t.dataset.tab); showTab(t.dataset.tab); }
+  });
+  document.querySelector(".cx-tabs").addEventListener("keydown", (e) => {
+    const i = TABS.findIndex((t) => document.getElementById("tab-" + t).getAttribute("aria-selected") === "true");
+    let n = -1;
+    if (e.key === "ArrowRight") n = (i + 1) % TABS.length;
+    else if (e.key === "ArrowLeft") n = (i + TABS.length - 1) % TABS.length;
+    else if (e.key === "Home") n = 0;
+    else if (e.key === "End") n = TABS.length - 1;
+    if (n < 0) return;
+    e.preventDefault();
+    history.replaceState(null, "", "#" + TABS[n]);
+    showTab(TABS[n], true);
+  });
+  window.addEventListener("hashchange", () => showTab(location.hash.slice(1)));
+  showTab(location.hash.slice(1));
+
   let resizeT;
   const rerender = () => { if (state.overview) renderHistory(); if (state.live) renderLive(); };
   window.addEventListener("resize", () => { clearTimeout(resizeT); resizeT = setTimeout(rerender, 150); });
@@ -487,13 +548,12 @@
   renderLive();
   get("ledger_overview").then((d) => {
     if (d.available === false) {
-      // Optional dataset not installed: keep the live sections, explain the missing ones.
-      ["chain-h", "hist-h"].forEach((id) => {
-        const sec = document.querySelector('section[aria-labelledby="' + id + '"]');
+      // Optional dataset not installed: keep the live tab, explain the missing ones.
+      ["panel-chain", "panel-history"].forEach((id) => {
+        const sec = document.getElementById(id);
         if (!sec) return;
-        const head = sec.querySelector(".cx-section-head");
-        sec.replaceChildren(head, el("div", { class: "cx-card" }, el("div", { class: "cx-empty" },
-          d.reason + " The live Stellar sections above work without it. See " + d.docs + " to add it.")));
+        sec.replaceChildren(el("div", { class: "tr-panel" }, el("div", { class: "cx-empty", text:
+          d.reason + " The live tab works without it. See " + d.docs + " to add it." })));
       });
       return;
     }
