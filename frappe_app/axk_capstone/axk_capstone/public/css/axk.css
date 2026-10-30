@@ -91,7 +91,7 @@ button { font-family: inherit; }
 .xt-app svg.xt-i { flex: none; display: block; }
 .xt-app :focus-visible { outline: 2px solid transparent; outline-offset: 2px; box-shadow: var(--ring); }
 .xt-app .xt-top :focus-visible, .xt-app .xt-rail :focus-visible { box-shadow: var(--ring-on-frame); }
-.xt-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.xt-sr { position: absolute; top: 0; left: 0; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .xt-skip { position: absolute; left: 12px; top: -48px; z-index: 200; background: var(--paper); color: var(--ink); padding: 8px 14px; border-radius: var(--r-control); font-weight: 650; text-decoration: none; }
 .xt-skip:focus { top: 8px; }
 
@@ -193,8 +193,10 @@ button { font-family: inherit; }
 .xt-table th:last-child, .xt-table td:last-child { padding-right: 16px; }
 .xt-table td.num, .xt-table th.num { text-align: right; font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; }
 .xt-table th.num { font-size: 12px; font-weight: 600; }
-.xt-table td.c-next { color: var(--ink-2); min-width: 150px; max-width: 260px; white-space: normal; line-height: 18px; }
-.xt-table td.c-next span { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+/* Status carries the next step as a second line, so the queue needs no separate Next column. */
+.xt-table td.c-st { padding-top: 6px; padding-bottom: 6px; }
+.xt-st { display: flex; flex-direction: column; align-items: flex-start; gap: 3px; }
+.xt-st-next { font-size: 12px; line-height: 16px; font-weight: 500; color: var(--ink-3); white-space: normal; max-width: 240px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .xt-table td a { text-decoration: none; font-weight: 500; }
 .xt-table td a:hover { text-decoration: underline; }
 .xt-table tr.is-row { cursor: pointer; }
@@ -352,7 +354,7 @@ button { font-family: inherit; }
 .xt-mono-ref { font-family: var(--font-mono); font-size: 20px; line-height: 26px; font-weight: 600; letter-spacing: -0.01em; color: var(--ink); overflow-wrap: anywhere; }
 /* One row capped at the space left, so the two columns scroll and the page does not. */
 .xt-lot-body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); gap: 20px; margin-top: 16px; flex: 1 1 0; min-height: 320px; }
-.xt-lot-body > div { min-height: 0; overflow: auto; display: grid; gap: 16px; align-content: start; }
+.xt-lot-body > div { position: relative; min-height: 0; overflow: auto; display: grid; gap: 16px; align-content: start; }
 .xt-lot-body .xt-card + .xt-card { margin-top: 0; }
 .xt-record { background: var(--sunk); border-radius: var(--r-control); padding: 10px 12px; font-family: var(--font-mono); font-size: 12px; line-height: 18px; overflow-wrap: anywhere; color: var(--ink-2); max-height: 120px; overflow-y: auto; }
 .xt-check { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; margin-top: 8px; }
@@ -439,13 +441,16 @@ button { font-family: inherit; }
 .xl-list { border: 1px solid var(--line); border-radius: var(--r-panel); }
 .xl-list > :first-child { border-radius: calc(var(--r-panel) - 1px) calc(var(--r-panel) - 1px) 0 0; }
 .xl-list > :last-child { border-radius: 0 0 calc(var(--r-panel) - 1px) calc(var(--r-panel) - 1px); }
-.xl-acct { display: grid; grid-template-columns: 16px auto minmax(0, 1fr) auto; align-items: center; gap: 10px; width: 100%; min-height: 44px; padding: 0 12px; border: 0; border-bottom: 1px solid var(--line); background: var(--paper); color: var(--ink); font: inherit; text-align: left; cursor: pointer; }
+/* Two lines: role and what it does, then the email. Same shape at every width. */
+.xl-acct { display: grid; grid-template-columns: 16px auto minmax(0, 1fr); grid-template-areas: "mark name duty" "mark mail mail"; align-items: center; gap: 2px 10px; width: 100%; min-height: 52px; padding: 8px 12px; border: 0; border-bottom: 1px solid var(--line); background: var(--paper); color: var(--ink); font: inherit; text-align: left; cursor: pointer; }
 .xl-list > :last-child { border-bottom: 0; }
 .xl-acct:hover { background: var(--sunk); }
 .xl-acct .xt-i { color: var(--ink-3); }
 .xl-acct b { font-size: 14px; font-weight: 650; }
-.xl-acct .xl-duty { font-size: 12px; color: var(--ink-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.xl-acct .xt-mono { font-size: 12px; color: var(--ink-2); }
+.xl-acct .xl-mark { grid-area: mark; }
+.xl-acct b { grid-area: name; }
+.xl-acct .xl-duty { grid-area: duty; font-size: 13px; color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.xl-acct .xt-mono { grid-area: mail; font-size: 12px; line-height: 16px; color: var(--ink-3); overflow-wrap: anywhere; }
 .xl-acct.is-selected { background: var(--proof-wash); box-shadow: inset 0 0 0 1px var(--proof); }
 .xl-acct.is-selected .xt-i { color: var(--proof); }
 .xl-acct:focus-visible { position: relative; z-index: 1; }
@@ -460,8 +465,9 @@ button { font-family: inherit; }
   .xt-rail-sep { height: 1px; background: var(--frame-line); margin: 8px 4px; }
 }
 @media (min-width: 1280px) { .xt-rail-sep { display: none; } }
-/* Rail plus docket leave the queue about 570px: drop Commodity so Status and Next stay on screen. */
+/* Rail plus docket leave the queue about 570px: drop Commodity, and custody shows only its n/9 figure. */
 @media (min-width: 960px) and (max-width: 1439px) { .xt-table .c-com { display: none; } }
+@media (min-width: 960px) and (max-width: 1599px) { .xt-table .c-cus .xt-notches { display: none; } }
 @media (max-width: 959px) {
   .xt-app { grid-template-columns: minmax(0, 1fr); height: auto; min-height: 100vh; }
   .xt-rail { display: none; }
@@ -484,7 +490,8 @@ button { font-family: inherit; }
   .xt-table td { display: block; height: auto; min-height: 0; padding: 0; border: 0; white-space: normal; }
   .xt-table td:first-child, .xt-table td:last-child { padding: 0; }
   .xt-table td.c-lot { grid-area: lot; }
-  .xt-table td.c-st { grid-area: st; }
+  .xt-table td.c-st { grid-area: st; padding: 0; }
+  .xt-table .xt-st-next { display: none; }
   .xt-table td.c-com { grid-area: com; }
   .xt-table td.c-qty { grid-area: qty; font-size: 13px; }
   .xt-table td.c-cus { grid-area: cus; }
@@ -511,10 +518,6 @@ button { font-family: inherit; }
   .xl-hero h1 { font-size: 28px; line-height: 32px; }
   .xl-hero p, .xl-foot, .xl-specimen .xt-lbl { display: none; }
   .xl-form { padding: 24px 16px 40px; }
-  .xl-acct { grid-template-columns: 16px auto minmax(0, 1fr); min-height: 48px; }
-  .xl-acct .xl-duty { display: none; }
-  .xl-acct { padding: 8px 12px; }
-  .xl-acct .xt-mono { justify-self: end; text-align: right; font-size: 12px; overflow-wrap: anywhere; }
 }
 @media (prefers-reduced-motion: reduce) {
   .xt-app *, .xl * { transition-duration: 0s !important; animation-duration: 0s !important; }

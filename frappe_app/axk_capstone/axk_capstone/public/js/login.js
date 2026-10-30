@@ -131,6 +131,7 @@
         var mail = document.createElement("span");
         mail.className = "xt-mono";
         mail.textContent = a.email;
+        mark.className = "xl-mark";
         b.append(mark, lbl, duty, mail);
         b.addEventListener("click", function () {
           list.querySelectorAll(".xl-acct").forEach(function (x) {

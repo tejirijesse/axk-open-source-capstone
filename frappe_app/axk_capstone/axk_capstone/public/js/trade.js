@@ -310,8 +310,7 @@
     { cls: "c-com", label: "Commodity", get: function (r) { return r.commodity; } },
     { cls: "c-qty num", label: "Qty", num: true, get: function (r) { return kg(r.inspected_quantity_kg || r.quantity_kg); } },
     { cls: "c-cus", label: "Custody", get: microStrip },
-    { cls: "c-st", label: "Status", get: function (r) { return tag(r.status); } },
-    { cls: "c-next", label: "Next", get: function (r) { var t = nextAction(r); return el("span", { title: t, text: t }); } }
+    { cls: "c-st", label: "Status", get: function (r) { var t = nextAction(r); return el("span", { class: "xt-st" }, tag(r.status), el("span", { class: "xt-st-next", title: t, text: t })); } }
   ];
   function lotTable(rows, o) {
     o = o || {};
