@@ -8,9 +8,12 @@ Soroban RPC keeps roughly a week of events and scans a bounded window per reques
 reader starts a fixed distance behind the latest ledger and pages forward with the cursor.
 """
 
+import json
+import urllib.request
+from datetime import datetime
+
 import frappe
-from stellar_sdk import SorobanServer, scval
-from stellar_sdk.soroban_rpc import EventFilter, EventFilterType
+from stellar_sdk import scval
 
 RPC_URL = "https://soroban-testnet.stellar.org"
 EXPLORER = "https://stellar.expert/explorer/testnet"
@@ -69,20 +72,52 @@ def _classify(kind, frm, to):
     return "Transfer"
 
 
+class _Rpc:
+    """Minimal Soroban JSON-RPC client. Reads only the event fields this module uses, so a new field in the RPC
+    response (or one dropped, as happened in October 2026) cannot break parsing the way a strict schema did."""
+
+    def __init__(self, url):
+        self.url = url
+
+    def call(self, method, params=None):
+        body = json.dumps({"jsonrpc": "2.0", "id": 1, "method": method, "params": params or {}}).encode()
+        req = urllib.request.Request(self.url, data=body, headers={
+            "Content-Type": "application/json", "User-Agent": "axk-capstone/0.1 (+https://github.com/tejirijesse/axk-open-source-capstone)"})
+        with urllib.request.urlopen(req, timeout=30) as r:
+            reply = json.loads(r.read())
+        if "error" in reply:
+            raise RuntimeError(reply["error"].get("message", "RPC error"))
+        return reply["result"]
+
+
+class _Event:
+    """One contract event: topics and value stay as XDR, decoded by scval.to_native where needed."""
+
+    def __init__(self, raw):
+        self.topic = raw.get("topic") or []
+        self.value = raw.get("value")
+        self.ledger = raw.get("ledger")
+        self.ledger_close_at = datetime.fromisoformat(raw["ledgerClosedAt"].replace("Z", "+00:00"))
+        self.transaction_hash = raw.get("txHash")
+
+
 def _events(server, contract_id, start):
     """All events for one contract since `start`. Each request scans a bounded ledger range
     and may come back empty with a cursor that has moved on, so page until it stops."""
-    flt = [EventFilter(event_type=EventFilterType.CONTRACT, contract_ids=[contract_id])]
+    filters = [{"type": "contract", "contractIds": [contract_id]}]
     events, cursor = [], None
     for _ in range(MAX_PAGES):
+        params = {"filters": filters, "pagination": {"limit": 200}}
         if cursor:
-            page = server.get_events(filters=flt, cursor=cursor, limit=200)
+            params["pagination"]["cursor"] = cursor
         else:
-            page = server.get_events(start_ledger=start, filters=flt, limit=200)
-        events.extend(page.events)
-        if not page.cursor or page.cursor == cursor:
+            params["startLedger"] = start
+        page = server.call("getEvents", params)
+        events.extend(_Event(e) for e in page.get("events") or [])
+        next_cursor = page.get("cursor")
+        if not next_cursor or next_cursor == cursor:
             break
-        cursor = page.cursor
+        cursor = next_cursor
     return events
 
 
@@ -114,9 +149,10 @@ def fetch():
         return cached
 
     token, labels = _config()
-    server = SorobanServer(RPC_URL)
-    health = server.get_health()
-    start = max(health.oldest_ledger, health.latest_ledger - LOOKBACK_LEDGERS)
+    server = _Rpc(RPC_URL)
+    health = server.call("getHealth")
+    latest, oldest = health["latestLedger"], health["oldestLedger"]
+    start = max(oldest, latest - LOOKBACK_LEDGERS)
 
     events = _events(server, token, start)
 
@@ -158,7 +194,7 @@ def fetch():
         "rpc": RPC_URL,
         "token": token,
         "token_url": f"{EXPLORER}/contract/{token}",
-        "latest_ledger": health.latest_ledger,
+        "latest_ledger": latest,
         "window_start_ledger": start,
         "events": rows,
     }

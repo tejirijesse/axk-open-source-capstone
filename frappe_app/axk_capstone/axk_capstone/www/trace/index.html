@@ -3,7 +3,7 @@
 {%- set v = m.get(s, ["registered","○",s]) -%}
 <span class="xt-pill {{ v[0] }}"><span aria-hidden="true">{{ v[1] }}</span>{{ v[2] }}</span>
 {%- endmacro %}
-{% extends "templates/web.html" %}
+{% extends "templates/axk_lean.html" %}
 {% block title %}{{ title }}{% endblock %}
 {% block style %}<link rel="stylesheet" href="/assets/axk_capstone/css/axk.css?v={{ css_v }}">{% endblock %}
 {% block page_content %}
