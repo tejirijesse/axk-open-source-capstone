@@ -17,6 +17,8 @@
   const nf1 = new Intl.NumberFormat("en-US", { maximumFractionDigits: 1 });
   const usd = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", notation: "compact", maximumFractionDigits: 2 });
   const rwf = (v) => nf.format(Math.round(v)) + " RWF";
+  const nfc = new Intl.NumberFormat("en-US", { notation: "compact", maximumFractionDigits: 1 });
+  const rwfShort = (v) => nfc.format(Math.round(v)) + " RWF";
   const short = (h, n) => (h ? h.slice(0, n || 10) + "…" + h.slice(-6) : "—");
 
   function el(tag, props, ...kids) {
@@ -255,7 +257,7 @@
       // Paper halo keeps a label readable where it crosses a ribbon.
       const halo = { stroke: css("--paper"), "stroke-width": 3, "paint-order": "stroke", "stroke-linejoin": "round" };
       svg.append(stext(Object.assign({ x: tx, y: ty, "font-size": 12, "font-weight": 600, fill: css("--ink"), "dominant-baseline": "middle" }, halo), short(n.name)));
-      svg.append(stext(Object.assign({ x: tx, y: ty + 15, "font-size": 11, fill: css("--ink-2"), "dominant-baseline": "middle" }, halo), rwf(n.v)));
+      svg.append(stext(Object.assign({ x: tx, y: ty + 15, "font-size": 11, fill: css("--ink-2"), "dominant-baseline": "middle" }, halo), narrow ? rwfShort(n.v) : rwf(n.v)));
     });
     box.replaceChildren(svg);
     if (early) box.append(el("p", { class: "tr-small cx-note", text: "Earlier funding outside the RPC window." }));
