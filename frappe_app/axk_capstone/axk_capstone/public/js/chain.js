@@ -142,7 +142,7 @@
       tile("Latest ledger", nf.format(d.latest_ledger), "Stellar testnet"),
       tile("Escrows funded", nf.format(count("Escrow funded")), rwf(funded)),
       tile("Escrows released", nf.format(count("Escrow released")), rwf(released)),
-      tile("Held in escrow", rwf(funded - released), "funded, not yet released"),
+      tile("Held in escrow", rwf(Math.max(0, funded - released)), "funded, not yet released"),
       tile("Split payouts", nf.format(count("Split payout")), rwf(sum("Split payout"))),
     );
     document.getElementById("live-meta").textContent =
@@ -508,7 +508,7 @@
   picker.addEventListener("change", (e) => loadLot(e.target.value).then(verify));
 
   // ---------- tabs ----------
-  const TABS = ["live", "chain", "history"];
+  let TABS = ["live", "chain", "history"];
   function showTab(name, focus) {
     if (TABS.indexOf(name) < 0) name = "live";
     TABS.forEach((t) => {
@@ -548,13 +548,17 @@
   renderLive();
   get("ledger_overview").then((d) => {
     if (d.available === false) {
-      // Optional dataset not installed: keep the live tab, explain the missing ones.
-      ["panel-chain", "panel-history"].forEach((id) => {
-        const sec = document.getElementById(id);
-        if (!sec) return;
-        sec.replaceChildren(el("div", { class: "tr-panel" }, el("div", { class: "cx-empty", text:
-          d.reason + " The live tab works without it. See " + d.docs + " to add it." })));
+      // Optional synthetic dataset not installed: the page is the live view only, with no tabs or synthetic labels.
+      ["chain", "history"].forEach((t) => {
+        document.getElementById("tab-" + t)?.remove();
+        document.getElementById("panel-" + t)?.remove();
       });
+      document.querySelector(".cx-tabs")?.remove();
+      const live = document.getElementById("panel-live");
+      live.removeAttribute("role"); live.removeAttribute("aria-labelledby");
+      document.querySelector("[data-synthetic]")?.remove();
+      TABS = ["live"];
+      showTab("live");
       return;
     }
     state.overview = d;

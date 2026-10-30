@@ -191,4 +191,7 @@ a.tr-notch:hover { transform: scaleY(1.5); }
   .tr-seg:first-child .tr-seg-label { left: 0; }
   .tr-seg:last-child .tr-seg-label { right: 0; text-align: right; }
   .tr-seg.next .tr-seg-label, .tr-seg.failed .tr-seg-label { left: 50%; transform: translateX(-50%); text-align: center; }
+  /* Next to an end label there is no room: the end labels win, the summary line above names the step. */
+  .tr-seg.show:nth-child(2) .tr-seg-label, .tr-seg.show:nth-child(8) .tr-seg-label { display: none; }
+  .tr-search-field { flex: 0 0 46px; }
 }

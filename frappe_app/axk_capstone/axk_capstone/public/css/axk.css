@@ -86,7 +86,7 @@ html, body { margin: 0; background: var(--frame); }
 .xt-app h3 { font-size: 14px; line-height: 20px; font-weight: 650; }
 .xt-app p { margin: 0; color: var(--ink-2); }
 .xt-app a { color: var(--proof); text-underline-offset: 2px; }
-.xt-app button { font-family: inherit; }
+button { font-family: inherit; }
 .xt-app code, .xt-mono { font-family: var(--font-mono); font-size: 12.5px; line-height: 18px; font-weight: 450; }
 .xt-app svg.xt-i { flex: none; display: block; }
 .xt-app :focus-visible { outline: 2px solid transparent; outline-offset: 2px; box-shadow: var(--ring); }
@@ -234,7 +234,7 @@ html, body { margin: 0; background: var(--frame); }
 .xt-strip-lg .xt-notches { gap: 3px; }
 .xt-strip-lg .xt-cell { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: 6px; text-decoration: none; border-radius: 2px; }
 .xt-strip-lg .xt-notch { width: 100%; height: 8px; }
-.xt-strip-lg .xt-lbl { font-size: 11px; line-height: 14px; font-weight: 550; color: var(--ink-3); overflow-wrap: anywhere; }
+.xt-strip-lg .xt-lbl { font-size: 11px; line-height: 14px; font-weight: 550; color: var(--ink-3); white-space: nowrap; }
 .xt-strip-lg .xt-cell.is-filled .xt-lbl { color: var(--ink-2); }
 .xt-strip-lg.is-compact .xt-lbl { display: none; }
 .xt-strip-lg.is-compact .xt-cell.keep { position: relative; }
@@ -416,7 +416,10 @@ html, body { margin: 0; background: var(--frame); }
 .xl-specimen .xt-cell { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: 6px; text-decoration: none; }
 .xl-specimen .xt-notch { width: 100%; height: 8px; border-color: var(--frame-line); }
 .xl-specimen .xt-notch.is-filled { background: var(--proof-bright); border-color: var(--proof-bright); }
-.xl-specimen .xt-lbl { font-size: 11px; line-height: 14px; font-weight: 550; color: var(--on-frame-3); overflow-wrap: anywhere; }
+.xl-specimen .xt-lbl { font-size: 11px; line-height: 14px; font-weight: 550; color: var(--on-frame-3); white-space: nowrap; }
+/* Nine labels never fit one row: stagger them so each word gets two cells, and pin the last one to the right edge. */
+.xl-specimen .xt-cell:nth-child(even) .xt-lbl, .xt-strip-lg .xt-cell:nth-child(even) .xt-lbl { margin-top: 14px; }
+.xl-specimen .xt-cell:last-child .xt-lbl, .xt-strip-lg .xt-cell:last-child .xt-lbl { align-self: flex-end; }
 .xl-foot { font-size: 12px; line-height: 18px; font-weight: 500; color: var(--on-frame-3); }
 .xl-form { display: flex; justify-content: center; align-items: center; padding: 32px; }
 .xl-col { width: 100%; max-width: 380px; display: grid; gap: 20px; }
