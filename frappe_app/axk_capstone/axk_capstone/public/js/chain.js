@@ -205,9 +205,11 @@
     funded = Math.max(funded, released);
     const held = funded - released;
 
-    const W = Math.max(560, box.clientWidth || 800), H = 300, nodeW = 12, pad = 10, top = 16;
+    // Phones get the box width, a narrower label gutter and short names, so the destinations stay on screen.
+    const W = Math.max(300, box.clientWidth || 800), narrow = W < 520, H = 300, nodeW = 12, pad = 10, top = 16;
+    const short = (n) => (narrow ? ({ "Escrow contracts": "Escrow", "Cooperative share": "Coop share", "Held in escrow": "Held" })[n] || n : n);
     const usable = H - top - 16;
-    const cols = [0, 0.3, 0.6, 1].map((f) => 8 + f * (W - 8 - nodeW - 150));
+    const cols = [0, 0.3, 0.6, 1].map((f) => 8 + f * (W - 8 - nodeW - (narrow ? 84 : 150)));
     const scale = (v) => (v / funded) * (usable - pad * 3);
 
     const nodes = [];
@@ -250,8 +252,10 @@
         fill: n.pending ? "none" : css("--chart-proof"), stroke: n.pending ? css("--ink-3") : "none",
         "stroke-dasharray": n.pending ? "3 2" : null }));
       const tx = n.x + nodeW + 6, ty = n.y + Math.min(n.h / 2, 14);
-      svg.append(stext({ x: tx, y: ty, "font-size": 12, "font-weight": 600, fill: css("--ink"), "dominant-baseline": "middle" }, n.name));
-      svg.append(stext({ x: tx, y: ty + 15, "font-size": 11, fill: css("--ink-2"), "dominant-baseline": "middle" }, rwf(n.v)));
+      // Paper halo keeps a label readable where it crosses a ribbon.
+      const halo = { stroke: css("--paper"), "stroke-width": 3, "paint-order": "stroke", "stroke-linejoin": "round" };
+      svg.append(stext(Object.assign({ x: tx, y: ty, "font-size": 12, "font-weight": 600, fill: css("--ink"), "dominant-baseline": "middle" }, halo), short(n.name)));
+      svg.append(stext(Object.assign({ x: tx, y: ty + 15, "font-size": 11, fill: css("--ink-2"), "dominant-baseline": "middle" }, halo), rwf(n.v)));
     });
     box.replaceChildren(svg);
     if (early) box.append(el("p", { class: "tr-small cx-note", text: "Earlier funding outside the RPC window." }));
@@ -519,9 +523,10 @@
     if (TABS.indexOf(name) < 0) name = "live";
     TABS.forEach((t) => {
       const on = t === name, tab = document.getElementById("tab-" + t);
+      document.getElementById("panel-" + t).hidden = !on;
+      if (!tab) return; // live-only page: the tab strip was removed
       tab.setAttribute("aria-selected", on ? "true" : "false");
       tab.tabIndex = on ? 0 : -1;
-      document.getElementById("panel-" + t).hidden = !on;
       if (on && focus) tab.focus();
     });
     // Charts are sized from their box, which is zero while hidden.
@@ -571,7 +576,7 @@
     renderHistory();
     picker.replaceChildren(...d.lots.map((l) => el("option", { value: l.name, text: l.name + " · " + l.commodity + " · " + l.events + " events" })));
     if (d.lots.length) loadLot(d.lots[0].name).then(verify);
-  }).catch((e) => { document.getElementById("hist-tiles").replaceChildren(tile("Ledger", "—", e.message)); });
+  }).catch((e) => { document.getElementById("hist-tiles")?.replaceChildren(tile("Ledger", "—", e.message)); });
   get("live_chain").then((d) => { state.live = d; renderLive(); })
     .catch((e) => { state.live = { error: e.message }; renderLive(); });
 })();
