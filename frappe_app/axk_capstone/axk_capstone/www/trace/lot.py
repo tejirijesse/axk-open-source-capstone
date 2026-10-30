@@ -1,3 +1,5 @@
+"""Context for /trace/lot, the public verification page of one lot."""
+
 import frappe
 
 from axk_capstone.verify import public_lot, qr_svg

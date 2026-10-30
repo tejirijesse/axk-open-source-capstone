@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Standalone runner for AXK Capstone.
+"""Offline simulation of the AXK Capstone screens. Nothing is signed and nothing touches Stellar.
 
-Runs the complete 5-dashboard AXK Network verification & settlement layer:
+Serves the same pages as the Frappe app from the repository's own templates, backed by SQLite:
 - Cooperative (/trade/coop)
 - Inspector (/trade/inspect)
 - Logistics (/trade/logistics)
@@ -10,8 +10,9 @@ Runs the complete 5-dashboard AXK Network verification & settlement layer:
 - Public Chain & Trace (/trace, /trace/lot)
 - Chain Explorer (/chain)
 
-Zero external services required (no MariaDB, no Redis, no bench required).
-Persists to local SQLite database: scripts/axk.db.
+No MariaDB, Redis or bench needed. Data lives in scripts/axk.db (override with AXK_SIM_DB).
+
+    python3 scripts/server.py        # http://localhost:8000
 """
 
 import hashlib
@@ -22,8 +23,6 @@ import os
 import re
 import socketserver
 import sqlite3
-import subprocess
-import sys
 import traceback
 import urllib.parse
 from datetime import datetime, timezone
@@ -195,7 +194,6 @@ def init_db():
     """)
     conn.commit()
 
-    # Seed if empty
     c.execute("SELECT COUNT(*) FROM axk_chain_trade")
     if c.fetchone()[0] == 0:
         seed_data(conn)
@@ -406,7 +404,7 @@ def generate_qr_svg(url):
         img.save(buf)
         return buf.getvalue().decode("utf-8").split("?>", 1)[-1]
     except Exception:
-        # High quality inline SVG placeholder if qrcode package missing
+        # qrcode is not installed: fall back to an inline placeholder
         return f'''<svg viewBox="0 0 100 100" width="120" height="120" xmlns="http://www.w3.org/2000/svg">
             <rect width="100" height="100" fill="#fff"/>
             <rect x="10" y="10" width="25" height="25" fill="#166350"/>
@@ -1273,9 +1271,9 @@ def run():
     init_db()
     socketserver.TCPServer.allow_reuse_address = True
     with socketserver.TCPServer(("", PORT), AXKHandler) as httpd:
-        print(f"\n========================================================")
-        print(f"  🚀 AXK Capstone Server Running at http://localhost:{PORT}")
-        print(f"========================================================")
+        print("\n========================================================")
+        print(f"  AXK Capstone offline simulation running at http://localhost:{PORT}")
+        print("========================================================")
         print(f"  • Cooperative:     http://localhost:{PORT}/trade/coop")
         print(f"  • Inspector:       http://localhost:{PORT}/trade/inspect")
         print(f"  • Logistics:       http://localhost:{PORT}/trade/logistics")
@@ -1283,7 +1281,7 @@ def run():
         print(f"  • Buyer:           http://localhost:{PORT}/trade/buy")
         print(f"  • Chain & Trace:   http://localhost:{PORT}/trace")
         print(f"  • Chain Explorer:  http://localhost:{PORT}/chain")
-        print(f"========================================================\n")
+        print("========================================================\n")
         try:
             httpd.serve_forever()
         except KeyboardInterrupt:

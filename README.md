@@ -143,7 +143,7 @@ scripts/test_trade.py end-to-end lifecycle and failure-mode tests
 scripts/test_epcis.py GS1 EPCIS export tests (validated against the official schema)
 scripts/test_odk.py   ODK form, importer and Central-sync tests
 docs/                 architecture, security, deployments, handover, technical report (PDF + HTML), screenshots
-scripts/generate_report.py  rebuilds the technical report from report_body.html and report.css
+docs/report/          generate_report.py rebuilds the technical report from report_body.html and report.css
 .github/              issue and pull request templates
 ROADMAP.md            step-by-step contribution tracks for every stage of the trade
 CONTRIBUTING.md       setup, workflow and project rules

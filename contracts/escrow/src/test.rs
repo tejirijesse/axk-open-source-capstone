@@ -44,9 +44,22 @@ fn setup() -> Fixture<'static> {
     registry.add_inspector(&inspector);
     let lot = inspected_lot(&env, &registry, &destination, &inspector, 1, true);
 
-    let escrow = EscrowClient::new(&env, &env.register(Escrow, (verifier.clone(), registry.address.clone())));
+    let escrow = EscrowClient::new(
+        &env,
+        &env.register(Escrow, (verifier.clone(), registry.address.clone())),
+    );
 
-    Fixture { env, escrow, registry, token, buyer, destination, verifier, inspector, lot }
+    Fixture {
+        env,
+        escrow,
+        registry,
+        token,
+        buyer,
+        destination,
+        verifier,
+        inspector,
+        lot,
+    }
 }
 
 fn inspected_lot(
@@ -58,7 +71,14 @@ fn inspected_lot(
     passed: bool,
 ) -> BytesN<32> {
     let lot = registry.register_lot(coop, &trade_id(env, 100 + n), &trade_id(env, 200 + n));
-    registry.inspect(&lot, inspector, &passed, &symbol_short!("A"), &3_850, &trade_id(env, 250));
+    registry.inspect(
+        &lot,
+        inspector,
+        &passed,
+        &symbol_short!("A"),
+        &3_850,
+        &trade_id(env, 250),
+    );
     lot
 }
 
@@ -70,7 +90,8 @@ fn trade_id(env: &Env, n: u8) -> BytesN<32> {
 
 fn fund(f: &Fixture, id: &BytesN<32>, amount: i128) {
     let deadline = f.env.ledger().timestamp() + 30 * DAY;
-    f.escrow.create(id, &f.lot, &f.buyer, &f.token.address, &amount, &deadline);
+    f.escrow
+        .create(id, &f.lot, &f.buyer, &f.token.address, &amount, &deadline);
 }
 
 #[test]
@@ -132,7 +153,9 @@ fn a_released_trade_cannot_then_be_refunded() {
     fund(&f, &id, 250);
     f.escrow.release(&id);
 
-    f.env.ledger().set_timestamp(f.env.ledger().timestamp() + 60 * DAY);
+    f.env
+        .ledger()
+        .set_timestamp(f.env.ledger().timestamp() + 60 * DAY);
 
     assert_eq!(f.escrow.try_refund(&id), Err(Ok(Error::NotFunded)));
     assert_eq!(f.token.balance(&f.buyer), 750);
@@ -144,7 +167,9 @@ fn a_refunded_trade_cannot_then_be_released() {
     let id = trade_id(&f.env, 1);
     fund(&f, &id, 250);
 
-    f.env.ledger().set_timestamp(f.env.ledger().timestamp() + 60 * DAY);
+    f.env
+        .ledger()
+        .set_timestamp(f.env.ledger().timestamp() + 60 * DAY);
     f.escrow.refund(&id);
 
     assert_eq!(f.escrow.try_release(&id), Err(Ok(Error::NotFunded)));
@@ -168,7 +193,9 @@ fn refund_after_the_deadline_returns_the_buyer_their_money() {
     let id = trade_id(&f.env, 1);
     fund(&f, &id, 250);
 
-    f.env.ledger().set_timestamp(f.env.ledger().timestamp() + 31 * DAY);
+    f.env
+        .ledger()
+        .set_timestamp(f.env.ledger().timestamp() + 31 * DAY);
     f.escrow.refund(&id);
 
     assert_eq!(f.token.balance(&f.buyer), 1_000);
@@ -183,7 +210,8 @@ fn a_second_escrow_cannot_reuse_a_trade_id() {
 
     let deadline = f.env.ledger().timestamp() + 30 * DAY;
     assert_eq!(
-        f.escrow.try_create(&id, &f.lot, &f.buyer, &f.token.address, &100, &deadline),
+        f.escrow
+            .try_create(&id, &f.lot, &f.buyer, &f.token.address, &100, &deadline),
         Err(Ok(Error::TradeExists)),
     );
     assert_eq!(f.token.balance(&f.escrow.address), 250);
@@ -196,8 +224,12 @@ fn a_zero_or_negative_amount_is_refused() {
     for (n, amount) in [(2u8, 0i128), (3, -100)] {
         assert_eq!(
             f.escrow.try_create(
-                &trade_id(&f.env, n), &f.lot, &f.buyer,
-                &f.token.address, &amount, &deadline,
+                &trade_id(&f.env, n),
+                &f.lot,
+                &f.buyer,
+                &f.token.address,
+                &amount,
+                &deadline,
             ),
             Err(Ok(Error::AmountNotPositive)),
         );
@@ -214,8 +246,12 @@ fn a_deadline_already_past_is_refused() {
     let deadline = f.env.ledger().timestamp();
     assert_eq!(
         f.escrow.try_create(
-            &trade_id(&f.env, 4), &f.lot, &f.buyer,
-            &f.token.address, &100, &deadline,
+            &trade_id(&f.env, 4),
+            &f.lot,
+            &f.buyer,
+            &f.token.address,
+            &100,
+            &deadline,
         ),
         Err(Ok(Error::DeadlineInPast)),
     );
@@ -231,8 +267,12 @@ fn a_deadline_beyond_the_records_own_lifetime_is_refused() {
     let deadline = f.env.ledger().timestamp() + 300 * DAY;
     assert_eq!(
         f.escrow.try_create(
-            &trade_id(&f.env, 5), &f.lot, &f.buyer,
-            &f.token.address, &100, &deadline,
+            &trade_id(&f.env, 5),
+            &f.lot,
+            &f.buyer,
+            &f.token.address,
+            &100,
+            &deadline,
         ),
         Err(Ok(Error::DeadlineTooFar)),
     );
@@ -248,8 +288,14 @@ fn create_demands_the_verifier_signature_as_well_as_the_buyer() {
     fund(&f, &trade_id(&f.env, 1), 250);
 
     let auths = f.env.auths();
-    assert!(auths.iter().any(|(a, _)| a == &f.buyer), "the buyer was not asked to sign");
-    assert!(auths.iter().any(|(a, _)| a == &f.verifier), "the verifier was not asked to sign");
+    assert!(
+        auths.iter().any(|(a, _)| a == &f.buyer),
+        "the buyer was not asked to sign"
+    );
+    assert!(
+        auths.iter().any(|(a, _)| a == &f.verifier),
+        "the verifier was not asked to sign"
+    );
 }
 
 #[test]
@@ -270,13 +316,27 @@ fn a_stranger_cannot_squat_a_trade_id() {
     registry.add_inspector(&inspector);
     let lot = inspected_lot(&env, &registry, &coop, &inspector, 1, true);
     env.set_auths(&[]);
-    let escrow = EscrowClient::new(&env, &env.register(Escrow, (verifier, registry.address.clone())));
+    let escrow = EscrowClient::new(
+        &env,
+        &env.register(Escrow, (verifier, registry.address.clone())),
+    );
 
     let deadline = env.ledger().timestamp() + 30 * DAY;
-    let result = escrow.try_create(&trade_id(&env, 1), &lot, &squatter, &token.address, &1, &deadline);
+    let result = escrow.try_create(
+        &trade_id(&env, 1),
+        &lot,
+        &squatter,
+        &token.address,
+        &1,
+        &deadline,
+    );
     // A host-level auth failure, not a contract error: the lot check passed and the
     // signatures are what refused it.
-    assert!(matches!(result, Err(Err(_))), "expected an auth failure, got {:?}", result);
+    assert!(
+        matches!(result, Err(Err(_))),
+        "expected an auth failure, got {:?}",
+        result
+    );
     assert_eq!(escrow.lot_trade(&lot), None, "a stranger occupied the lot");
 }
 
@@ -318,7 +378,10 @@ fn release_demands_the_verifier_signature_specifically() {
     f.escrow.release(&id);
 
     let auths = f.env.auths();
-    assert_eq!(auths.first().map(|(addr, _)| addr.clone()), Some(f.verifier.clone()));
+    assert_eq!(
+        auths.first().map(|(addr, _)| addr.clone()),
+        Some(f.verifier.clone())
+    );
 }
 
 #[test]
@@ -327,27 +390,38 @@ fn refund_demands_no_signature_at_all() {
     let f = setup();
     let id = trade_id(&f.env, 1);
     fund(&f, &id, 250);
-    f.env.ledger().set_timestamp(f.env.ledger().timestamp() + 31 * DAY);
+    f.env
+        .ledger()
+        .set_timestamp(f.env.ledger().timestamp() + 31 * DAY);
 
     f.escrow.refund(&id);
 
     assert!(f.env.auths().is_empty(), "refund required an authorisation");
 }
 
-// ---------------------------------------------------------------------------
-// Verification before settlement: the lot registry gate
-// ---------------------------------------------------------------------------
-
 #[test]
 fn an_uninspected_lot_cannot_be_funded() {
     let f = setup();
-    let fresh = f.registry.register_lot(&f.destination, &trade_id(&f.env, 50), &trade_id(&f.env, 51));
+    let fresh =
+        f.registry
+            .register_lot(&f.destination, &trade_id(&f.env, 50), &trade_id(&f.env, 51));
     let deadline = f.env.ledger().timestamp() + 30 * DAY;
     assert_eq!(
-        f.escrow.try_create(&trade_id(&f.env, 1), &fresh, &f.buyer, &f.token.address, &100, &deadline),
+        f.escrow.try_create(
+            &trade_id(&f.env, 1),
+            &fresh,
+            &f.buyer,
+            &f.token.address,
+            &100,
+            &deadline
+        ),
         Err(Ok(Error::LotNotApproved)),
     );
-    assert_eq!(f.token.balance(&f.buyer), 1_000, "money moved for an uninspected lot");
+    assert_eq!(
+        f.token.balance(&f.buyer),
+        1_000,
+        "money moved for an uninspected lot"
+    );
 }
 
 #[test]
@@ -356,7 +430,14 @@ fn a_rejected_lot_cannot_be_funded() {
     let rejected = inspected_lot(&f.env, &f.registry, &f.destination, &f.inspector, 2, false);
     let deadline = f.env.ledger().timestamp() + 30 * DAY;
     assert_eq!(
-        f.escrow.try_create(&trade_id(&f.env, 1), &rejected, &f.buyer, &f.token.address, &100, &deadline),
+        f.escrow.try_create(
+            &trade_id(&f.env, 1),
+            &rejected,
+            &f.buyer,
+            &f.token.address,
+            &100,
+            &deadline
+        ),
         Err(Ok(Error::LotNotApproved)),
     );
 }
@@ -366,7 +447,14 @@ fn an_unregistered_lot_cannot_be_funded() {
     let f = setup();
     let deadline = f.env.ledger().timestamp() + 30 * DAY;
     assert_eq!(
-        f.escrow.try_create(&trade_id(&f.env, 1), &trade_id(&f.env, 77), &f.buyer, &f.token.address, &100, &deadline),
+        f.escrow.try_create(
+            &trade_id(&f.env, 1),
+            &trade_id(&f.env, 77),
+            &f.buyer,
+            &f.token.address,
+            &100,
+            &deadline
+        ),
         Err(Ok(Error::LotNotApproved)),
     );
 }
@@ -389,7 +477,14 @@ fn a_lot_cannot_back_two_live_escrows() {
     fund(&f, &trade_id(&f.env, 1), 250);
     let deadline = f.env.ledger().timestamp() + 30 * DAY;
     assert_eq!(
-        f.escrow.try_create(&trade_id(&f.env, 2), &f.lot, &f.buyer, &f.token.address, &100, &deadline),
+        f.escrow.try_create(
+            &trade_id(&f.env, 2),
+            &f.lot,
+            &f.buyer,
+            &f.token.address,
+            &100,
+            &deadline
+        ),
         Err(Ok(Error::LotInEscrow)),
     );
     assert_eq!(f.escrow.lot_trade(&f.lot), Some(trade_id(&f.env, 1)));
@@ -403,7 +498,14 @@ fn a_sold_lot_cannot_be_sold_again() {
     f.escrow.release(&id);
     let deadline = f.env.ledger().timestamp() + 30 * DAY;
     assert_eq!(
-        f.escrow.try_create(&trade_id(&f.env, 2), &f.lot, &f.buyer, &f.token.address, &100, &deadline),
+        f.escrow.try_create(
+            &trade_id(&f.env, 2),
+            &f.lot,
+            &f.buyer,
+            &f.token.address,
+            &100,
+            &deadline
+        ),
         Err(Ok(Error::LotInEscrow)),
     );
 }
@@ -413,7 +515,9 @@ fn a_refund_frees_the_lot_for_another_buyer() {
     let f = setup();
     let first = trade_id(&f.env, 1);
     fund(&f, &first, 250);
-    f.env.ledger().set_timestamp(f.env.ledger().timestamp() + 31 * DAY);
+    f.env
+        .ledger()
+        .set_timestamp(f.env.ledger().timestamp() + 31 * DAY);
     f.escrow.refund(&first);
     assert_eq!(f.escrow.lot_trade(&f.lot), None);
 

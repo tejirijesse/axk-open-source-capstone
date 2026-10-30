@@ -19,6 +19,7 @@ NAV = [
 
 
 def _stamp(rel):
+    """File mtime used to cache-bust static assets."""
     try:
         return int(os.path.getmtime(os.path.join(_PUBLIC, rel)))
     except OSError:
@@ -26,6 +27,7 @@ def _stamp(rel):
 
 
 def page(context, active, title):
+    """Fill the shared page context (navigation, network, asset versions) and return it."""
     context.title = title
     context.no_breadcrumbs = True
     context.show_sidebar = False

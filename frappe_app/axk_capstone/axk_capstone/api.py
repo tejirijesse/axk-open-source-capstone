@@ -22,6 +22,7 @@ CHANNEL_GROUPS = [
 
 
 def _group(channel):
+    """Settlement channel family used for the share chart."""
     for name, prefixes in CHANNEL_GROUPS:
         if channel and channel.startswith(prefixes):
             return name
@@ -30,6 +31,7 @@ def _group(channel):
 
 @frappe.whitelist(allow_guest=True)
 def live_chain():
+    """Live RWF token and lot registry events from Stellar testnet. Returns {"error": ...} if the RPC is unavailable."""
     try:
         return stellar_live.fetch()
     except Exception as e:  # network down, RPC limits: the page still renders the ledger half
@@ -53,6 +55,7 @@ def history_available():
 
 @frappe.whitelist(allow_guest=True)
 def ledger_overview():
+    """Aggregates for the synthetic history charts, or {"available": False} when it is not installed."""
     if not history_available():
         return HISTORY_UNAVAILABLE
     sql = frappe.db.sql
@@ -128,6 +131,7 @@ def ledger_overview():
 
 @frappe.whitelist(allow_guest=True)
 def lot_chain(lot):
+    """Verification events of one synthetic-history lot, in sequence order, for in-browser hash-chain checks."""
     if not history_available():
         return HISTORY_UNAVAILABLE
     if not frappe.db.exists("Lot", {"name": lot, SYNTH: 1}):

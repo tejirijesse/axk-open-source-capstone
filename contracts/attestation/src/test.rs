@@ -64,7 +64,10 @@ fn matches_is_false_for_a_trade_that_was_never_attested() {
 #[test]
 fn reading_an_unknown_trade_is_an_error() {
     let (env, registry, _attester) = setup();
-    assert_eq!(registry.try_get(&bytes(&env, 7)), Err(Ok(Error::NoSuchTrade)));
+    assert_eq!(
+        registry.try_get(&bytes(&env, 7)),
+        Err(Ok(Error::NoSuchTrade))
+    );
 }
 
 #[test]
@@ -100,5 +103,8 @@ fn a_stranger_cannot_pre_empt_a_trade_id() {
 
     // No auth mocked for anyone: the write must not go through.
     let stranger_write = registry.try_attest(&bytes(&env, 1), &bytes(&env, 99));
-    assert!(stranger_write.is_err(), "an unauthorised attestation was accepted");
+    assert!(
+        stranger_write.is_err(),
+        "an unauthorised attestation was accepted"
+    );
 }

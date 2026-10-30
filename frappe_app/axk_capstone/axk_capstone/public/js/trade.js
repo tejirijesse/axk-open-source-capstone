@@ -1,4 +1,4 @@
-/* AXK Trade role screens: Overview, Cooperative, Inspector, Buyer, Lot detail.
+/* AXK Trade role screens: Overview, Cooperative, Inspector, Logistics, Port, Buyer, Lot detail.
  * Vanilla DOM. Everything from the server is inserted with textContent. */
 (function () {
   "use strict";

@@ -1,3 +1,5 @@
+"""Context for /trade/port, the Port / Terminal screen."""
+
 from axk_capstone.web import page
 
 no_cache = 1

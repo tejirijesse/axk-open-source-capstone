@@ -1,4 +1,4 @@
-# AXK capstone: one command per task. Run `make help`.
+# AXK capstone: one command per task. `make help` lists them.
 SHELL := /bin/bash
 export PATH := /opt/homebrew/opt/rustup/bin:$(HOME)/.cargo/bin:$(HOME)/.venvs/bench/bin:/opt/homebrew/opt/python@3.11/bin:/opt/homebrew/opt/mariadb@10.11/bin:/opt/homebrew/bin:$(PATH)
 
@@ -6,12 +6,12 @@ BENCH ?= $(abspath $(CURDIR)/../axk-bench)
 SITE  ?= axk.localhost
 SEED  ?= $(CURDIR)/axk_seed/data
 
-.PHONY: help check-env show-db toolchain test test-contracts test-python test-epcis test-odk odk-form build demo run run-frappe seed seed-purge install-app contracts-config zip
+.PHONY: help check-env show-db toolchain test test-contracts test-python test-epcis test-odk test-report odk-form build demo run run-frappe seed seed-purge install-app contracts-config zip
 
 help:            ## list tasks
 	@grep -E "^[a-z-]+:.*## " $(MAKEFILE_LIST) | sed -E "s/:.*## /\t/" | column -t -s "$$(printf "\t")"
 
-check-env:       ## one-screen check: toolchain, MariaDB, Redis, app server, contracts, testnet
+check-env:       ## read-only check of toolchain, MariaDB, Redis, app server, contracts and testnet
 	@AXK_BENCH=$(BENCH) AXK_SITE=$(SITE) ./scripts/check_env.sh
 
 show-db:         ## the five newest trades as stored in MariaDB (lot, status, transaction hashes)
@@ -22,13 +22,13 @@ toolchain:       ## install Rust, the wasm target and stellar-cli (macOS, Homebr
 	rustup default stable
 	rustup target add wasm32v1-none
 
-test:            ## contract, EPCIS and ODK tests + integration tests (7; needs a server on :8000)
+test:            ## all test suites: contracts, EPCIS, ODK, then end-to-end (end-to-end needs a server on :8000)
 	cd contracts && cargo test
 	python3 scripts/test_epcis.py
 	python3 scripts/test_odk.py
 	python3 scripts/test_trade.py
 
-test-contracts:  ## run all 65 smart contract unit tests
+test-contracts:  ## smart contract unit tests (cargo)
 	cd contracts && cargo test
 
 test-epcis:      ## GS1 EPCIS export tests (no server; schema checks need jsonschema)
@@ -37,10 +37,13 @@ test-epcis:      ## GS1 EPCIS export tests (no server; schema checks need jsonsc
 test-odk:        ## ODK offline-inspection tests (no server)
 	python3 scripts/test_odk.py
 
+test-report:     ## technical report source checks (5-page body limit, output paths)
+	python3 docs/report/test_generate_report.py
+
 odk-form:        ## rebuild odk/axk_inspection.xlsx and .xml (needs openpyxl, pyxform)
 	python3 odk/build_form.py
 
-test-python:     ## run end-to-end integration and failure-mode test suite
+test-python:     ## end-to-end lifecycle and failure-mode tests (needs a server on :8000)
 	python3 scripts/test_trade.py
 
 build:           ## build the four contracts to wasm

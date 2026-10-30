@@ -1,5 +1,3 @@
-#![no_std]
-
 //! Holds a buyer's payment against one trade until delivery is verified.
 //!
 //! The destination is fixed when the escrow is created. Nothing afterwards can
@@ -7,21 +5,22 @@
 //! verifier or admin can stall a release or let the deadline pass, but cannot
 //! send the money somewhere else.
 
+#![no_std]
+
 use soroban_sdk::{
     contract, contracterror, contractimpl, contracttype, token, Address, BytesN, Env,
 };
 
-/// Ledgers close about every five seconds. An escrow's own deadlines run to
-/// ninety days, so its record has to outlive them by a margin or the money is
-/// stranded behind an archived entry.
+/// Ledgers per day at the ~5 s close time.
 const DAY_LEDGERS: u32 = 17_280;
+/// Trade entries are bumped once their TTL falls below this.
 const TRADE_TTL_THRESHOLD: u32 = DAY_LEDGERS * 120;
+/// TTL applied on each bump. Must outlive the longest deadline or the funds
+/// would sit behind an archived entry.
 const TRADE_TTL_EXTEND: u32 = DAY_LEDGERS * 180;
 
-/// A deadline has to stay inside the window the record is kept alive for.
-/// The extension above is 180 days and is refreshed on reads, but a trade
-/// nobody reads gets only the one applied at `create`, so a deadline beyond
-/// that could outlive its own record and strand the money it guards.
+/// Longest allowed deadline from now. A trade nobody reads only gets the TTL
+/// applied at `create` (180 days), so the deadline must fall inside it.
 const MAX_TERM_SECONDS: u64 = 150 * 86_400;
 
 /// The one question escrow asks the lot registry: who gets paid for this lot, if it passed
@@ -29,6 +28,7 @@ const MAX_TERM_SECONDS: u64 = 150 * 86_400;
 /// contracts deploy and upgrade independently.
 #[soroban_sdk::contractclient(name = "RegistryClient")]
 pub trait Registry {
+    /// The cooperative to pay for `lot_id`, or `None` unless the lot is approved.
     fn approved_cooperative(env: Env, lot_id: BytesN<32>) -> Option<Address>;
 }
 
@@ -36,23 +36,36 @@ pub trait Registry {
 #[derive(Copy, Clone, Debug, Eq, PartialEq, PartialOrd, Ord)]
 #[repr(u32)]
 pub enum Error {
+    /// Verifier or registry is not set.
     NotInitialised = 2,
+    /// A trade with this id already exists.
     TradeExists = 3,
+    /// No trade exists for this id.
     NoSuchTrade = 4,
+    /// The trade is not in `Funded` status.
     NotFunded = 5,
+    /// Refund requested before the deadline.
     DeadlineNotReached = 6,
+    /// Deadline is not in the future.
     DeadlineInPast = 7,
+    /// Amount must be greater than zero.
     AmountNotPositive = 8,
+    /// Deadline is beyond `MAX_TERM_SECONDS`.
     DeadlineTooFar = 9,
+    /// The lot has not passed inspection in the registry.
     LotNotApproved = 10,
+    /// The lot already backs a live escrow.
     LotInEscrow = 11,
 }
 
 #[contracttype]
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Status {
+    /// Money held. Can be released or, after the deadline, refunded.
     Funded = 0,
+    /// Paid to the destination. Terminal.
     Released = 1,
+    /// Returned to the buyer. Terminal.
     Refunded = 2,
 }
 
@@ -61,9 +74,11 @@ pub enum Status {
 pub struct Trade {
     pub lot_id: BytesN<32>,
     pub buyer: Address,
+    /// The lot's cooperative, fixed at creation.
     pub destination: Address,
     pub token: Address,
     pub amount: i128,
+    /// Ledger timestamp after which anyone may refund.
     pub deadline: u64,
     pub status: Status,
 }
@@ -71,8 +86,11 @@ pub struct Trade {
 #[contracttype]
 #[derive(Clone)]
 enum Key {
+    /// Instance: signs `create` and `release`.
     Verifier,
+    /// Instance: lot registry contract.
     Registry,
+    /// Persistent: `Trade` by trade id.
     Trade(BytesN<32>),
     /// The trade a lot currently backs. Cleared on refund, kept on release (the lot is sold).
     LotTrade(BytesN<32>),
@@ -91,6 +109,7 @@ impl Escrow {
         env.storage().instance().set(&Key::Registry, &registry);
     }
 
+    /// The lot registry this escrow consults.
     pub fn registry(env: Env) -> Result<Address, Error> {
         env.storage()
             .instance()
@@ -98,6 +117,7 @@ impl Escrow {
             .ok_or(Error::NotInitialised)
     }
 
+    /// The address that must co-sign `create` and sign `release`.
     pub fn verifier(env: Env) -> Result<Address, Error> {
         env.storage()
             .instance()
@@ -153,9 +173,7 @@ impl Escrow {
         buyer.require_auth();
         Self::verifier(env.clone())?.require_auth();
 
-        // State first, then the external call. `release` and `refund` already
-        // do this; `create` did not, which left the one path where a token
-        // contract is called before the trade exists in storage.
+        // Effects before the token transfer.
         env.storage().persistent().set(
             &key,
             &Trade {
@@ -213,9 +231,9 @@ impl Escrow {
         Ok(())
     }
 
-    /// Returns the money to the buyer once the deadline has passed.
+    /// Returns the money to the buyer once the deadline has passed. Frees the lot.
     ///
-    /// Deliberately callable by anyone. If it required a privileged caller, a
+    /// Callable by anyone. If it required a privileged caller, a
     /// buyer's refund would depend on AXK still being around to sign for it.
     pub fn refund(env: Env, trade_id: BytesN<32>) -> Result<(), Error> {
         let key = Key::Trade(trade_id);
@@ -233,7 +251,9 @@ impl Escrow {
 
         trade.status = Status::Refunded;
         env.storage().persistent().set(&key, &trade);
-        env.storage().persistent().remove(&Key::LotTrade(trade.lot_id.clone()));
+        env.storage()
+            .persistent()
+            .remove(&Key::LotTrade(trade.lot_id.clone()));
         env.storage()
             .persistent()
             .extend_ttl(&key, TRADE_TTL_THRESHOLD, TRADE_TTL_EXTEND);
@@ -251,6 +271,7 @@ impl Escrow {
         env.storage().persistent().get(&Key::LotTrade(lot_id))
     }
 
+    /// Returns the trade and refreshes its TTL.
     pub fn get(env: Env, trade_id: BytesN<32>) -> Result<Trade, Error> {
         let key = Key::Trade(trade_id);
         let trade: Trade = env

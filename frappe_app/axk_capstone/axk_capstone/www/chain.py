@@ -1,3 +1,5 @@
+"""Context for /chain, the chain explorer."""
+
 from axk_capstone.web import page
 
 no_cache = 1

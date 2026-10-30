@@ -1,5 +1,3 @@
-#![no_std]
-
 //! Records that a commodity lot exists and that an authorised inspector examined it.
 //!
 //! This is the verification half of the trade. A cooperative registers a lot by committing
@@ -12,32 +10,46 @@
 //! shown the record can hash it and check it against what was registered, without the ledger
 //! carrying anybody's personal or commercial data.
 
+#![no_std]
+
 use soroban_sdk::{
     contract, contracterror, contractimpl, contracttype, symbol_short, xdr::ToXdr, Address, Bytes,
     BytesN, Env, Symbol,
 };
 
+/// Ledgers per day at the ~5 s close time.
 const DAY_LEDGERS: u32 = 17_280;
+/// Persistent entries are bumped once their TTL falls below this.
 const TTL_THRESHOLD: u32 = DAY_LEDGERS * 120;
+/// TTL applied on each bump.
 const TTL_EXTEND: u32 = DAY_LEDGERS * 180;
 
 #[contracterror]
 #[derive(Copy, Clone, Debug, Eq, PartialEq, PartialOrd, Ord)]
 #[repr(u32)]
 pub enum Error {
+    /// A lot with this id is already registered.
     LotExists = 1,
+    /// No lot (or inspection) exists for this id.
     NoSuchLot = 2,
+    /// The signer is not on the inspector list.
     NotAnInspector = 3,
+    /// The lot already has its one inspection.
     AlreadyInspected = 4,
+    /// Inspected quantity must be greater than zero.
     QuantityNotPositive = 5,
+    /// The inspector is the cooperative that owns the lot.
     InspectorOwnsLot = 6,
 }
 
 #[contracttype]
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum LotStatus {
+    /// Awaiting inspection.
     Registered = 0,
+    /// Passed inspection. Payable.
     Approved = 1,
+    /// Failed inspection. Terminal.
     Rejected = 2,
 }
 
@@ -46,8 +58,11 @@ pub enum LotStatus {
 pub struct Inspection {
     pub inspector: Address,
     pub passed: bool,
+    /// Grade as measured by the inspector.
     pub grade: Symbol,
+    /// Weight as measured, in kilograms. Always positive.
     pub quantity_kg: i128,
+    /// Digest of the off-chain inspection report.
     pub report_digest: BytesN<32>,
     pub ledger: u32,
     pub timestamp: u64,
@@ -56,8 +71,11 @@ pub struct Inspection {
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Lot {
+    /// Owner, and the payee if the lot is approved.
     pub cooperative: Address,
+    /// The cooperative's own reference. Not unique across cooperatives; see `lot_id`.
     pub lot_ref: BytesN<32>,
+    /// Digest of the off-chain lot record.
     pub digest: BytesN<32>,
     pub status: LotStatus,
     pub registered_ledger: u32,
@@ -66,9 +84,13 @@ pub struct Lot {
 #[contracttype]
 #[derive(Clone)]
 enum Key {
+    /// Instance: admin address.
     Admin,
+    /// Persistent: presence means authorised.
     Inspector(Address),
+    /// Persistent: `Lot` by lot id.
     Lot(BytesN<32>),
+    /// Persistent: `Inspection` by lot id.
     Inspection(BytesN<32>),
 }
 
@@ -83,6 +105,7 @@ impl LotRegistry {
         env.storage().instance().set(&Key::Admin, &admin);
     }
 
+    /// The address that manages the inspector list.
     pub fn admin(env: Env) -> Address {
         env.storage().instance().get(&Key::Admin).unwrap()
     }
@@ -90,11 +113,16 @@ impl LotRegistry {
     /// Authorises an inspector. Admin only.
     pub fn add_inspector(env: Env, inspector: Address) {
         Self::admin(env.clone()).require_auth();
-        env.storage().persistent().set(&Key::Inspector(inspector.clone()), &true);
         env.storage()
             .persistent()
-            .extend_ttl(&Key::Inspector(inspector.clone()), TTL_THRESHOLD, TTL_EXTEND);
-        env.events().publish((symbol_short!("insp"), symbol_short!("added")), inspector);
+            .set(&Key::Inspector(inspector.clone()), &true);
+        env.storage().persistent().extend_ttl(
+            &Key::Inspector(inspector.clone()),
+            TTL_THRESHOLD,
+            TTL_EXTEND,
+        );
+        env.events()
+            .publish((symbol_short!("insp"), symbol_short!("added")), inspector);
     }
 
     /// Withdraws an inspector's authority for future inspections. Inspections they already
@@ -102,10 +130,14 @@ impl LotRegistry {
     /// exists to prevent.
     pub fn remove_inspector(env: Env, inspector: Address) {
         Self::admin(env.clone()).require_auth();
-        env.storage().persistent().remove(&Key::Inspector(inspector.clone()));
-        env.events().publish((symbol_short!("insp"), symbol_short!("removed")), inspector);
+        env.storage()
+            .persistent()
+            .remove(&Key::Inspector(inspector.clone()));
+        env.events()
+            .publish((symbol_short!("insp"), symbol_short!("removed")), inspector);
     }
 
+    /// Whether `inspector` is currently authorised.
     pub fn is_inspector(env: Env, inspector: Address) -> bool {
         env.storage().persistent().has(&Key::Inspector(inspector))
     }
@@ -146,9 +178,13 @@ impl LotRegistry {
                 registered_ledger: env.ledger().sequence(),
             },
         );
-        env.storage().persistent().extend_ttl(&key, TTL_THRESHOLD, TTL_EXTEND);
-        env.events()
-            .publish((symbol_short!("lot"), symbol_short!("register")), (id.clone(), cooperative));
+        env.storage()
+            .persistent()
+            .extend_ttl(&key, TTL_THRESHOLD, TTL_EXTEND);
+        env.events().publish(
+            (symbol_short!("lot"), symbol_short!("register")),
+            (id.clone(), cooperative),
+        );
         Ok(id)
     }
 
@@ -176,7 +212,11 @@ impl LotRegistry {
             return Err(Error::QuantityNotPositive);
         }
         let key = Key::Lot(lot_id.clone());
-        let mut lot: Lot = env.storage().persistent().get(&key).ok_or(Error::NoSuchLot)?;
+        let mut lot: Lot = env
+            .storage()
+            .persistent()
+            .get(&key)
+            .ok_or(Error::NoSuchLot)?;
         if lot.status != LotStatus::Registered {
             return Err(Error::AlreadyInspected);
         }
@@ -184,7 +224,11 @@ impl LotRegistry {
             return Err(Error::InspectorOwnsLot);
         }
 
-        lot.status = if passed { LotStatus::Approved } else { LotStatus::Rejected };
+        lot.status = if passed {
+            LotStatus::Approved
+        } else {
+            LotStatus::Rejected
+        };
         let ikey = Key::Inspection(lot_id.clone());
         env.storage().persistent().set(
             &ikey,
@@ -198,21 +242,35 @@ impl LotRegistry {
                 timestamp: env.ledger().timestamp(),
             },
         );
-        env.storage().persistent().extend_ttl(&ikey, TTL_THRESHOLD, TTL_EXTEND);
+        env.storage()
+            .persistent()
+            .extend_ttl(&ikey, TTL_THRESHOLD, TTL_EXTEND);
         env.storage().persistent().set(&key, &lot);
-        env.storage().persistent().extend_ttl(&key, TTL_THRESHOLD, TTL_EXTEND);
-        env.events()
-            .publish((symbol_short!("lot"), symbol_short!("inspect")), (lot_id, inspector, passed));
+        env.storage()
+            .persistent()
+            .extend_ttl(&key, TTL_THRESHOLD, TTL_EXTEND);
+        env.events().publish(
+            (symbol_short!("lot"), symbol_short!("inspect")),
+            (lot_id, inspector, passed),
+        );
         Ok(lot.status)
     }
 
+    /// Returns the lot and refreshes its TTL.
     pub fn get(env: Env, lot_id: BytesN<32>) -> Result<Lot, Error> {
         let key = Key::Lot(lot_id);
-        let lot: Lot = env.storage().persistent().get(&key).ok_or(Error::NoSuchLot)?;
-        env.storage().persistent().extend_ttl(&key, TTL_THRESHOLD, TTL_EXTEND);
+        let lot: Lot = env
+            .storage()
+            .persistent()
+            .get(&key)
+            .ok_or(Error::NoSuchLot)?;
+        env.storage()
+            .persistent()
+            .extend_ttl(&key, TTL_THRESHOLD, TTL_EXTEND);
         Ok(lot)
     }
 
+    /// Returns the lot's inspection, or `NoSuchLot` if it has not been inspected.
     pub fn get_inspection(env: Env, lot_id: BytesN<32>) -> Result<Inspection, Error> {
         env.storage()
             .persistent()

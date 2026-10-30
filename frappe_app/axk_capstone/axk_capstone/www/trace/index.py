@@ -1,3 +1,5 @@
+"""Context for /trace, public lot search."""
+
 import frappe
 
 from axk_capstone.verify import search

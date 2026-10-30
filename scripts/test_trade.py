@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """End-to-end integration and failure-mode test suite for AXK Capstone.
 
-Validates the complete 5-stage physical and financial custody lifecycle:
+Validates the complete six-stage physical and financial custody lifecycle:
 1. Cooperative: lot registration and provenance commitment
 2. Inspector: physical grading, moisture test, pass/reject attestation
 3. Buyer: escrow funding and lock
@@ -9,12 +9,14 @@ Validates the complete 5-stage physical and financial custody lifecycle:
 5. Port / Terminal: gate-in, seal tamper verification, customs clearance
 6. Settlement: buyer release, member cooperative split, attestation anchor
 
-Tests both happy-path and adversarial failure modes according to ~/.agent-doctrine.md §1.
+Tests both happy-path and adversarial failure modes against the running server.
+
+    python3 scripts/server.py &        # or make run-frappe
+    python3 scripts/test_trade.py
 """
 
 import json
 import os
-import sys
 import unittest
 import urllib.error
 import urllib.parse

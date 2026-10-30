@@ -1,5 +1,3 @@
-#![no_std]
-
 //! Divides a released payment between the parties to a trade, atomically.
 //!
 //! The invariant is that the parts sum to exactly the whole. Not approximately:
@@ -13,31 +11,44 @@
 //! parties agree to it, and coordinator-only so nobody else can get their
 //! division in first.
 
+#![no_std]
+
 use soroban_sdk::{
     contract, contracterror, contractimpl, contracttype, token, Address, BytesN, Env, Vec,
 };
 
+/// Basis points in the whole.
 const BPS: i128 = 10_000;
 
+/// Ledgers per day at the ~5 s close time.
 const DAY_LEDGERS: u32 = 17_280;
+/// Persistent entries are bumped once their TTL falls below this.
 const TTL_THRESHOLD: u32 = DAY_LEDGERS * 120;
+/// TTL applied on each bump.
 const TTL_EXTEND: u32 = DAY_LEDGERS * 180;
 
 #[contracterror]
 #[derive(Copy, Clone, Debug, Eq, PartialEq, PartialOrd, Ord)]
 #[repr(u32)]
 pub enum Error {
+    /// The share list is empty.
     NoShares = 1,
+    /// Shares do not total exactly 10,000 bps.
     SharesDoNotSumToWhole = 2,
+    /// A share is zero or negative.
     ShareNotPositive = 3,
+    /// The trade already has a split.
     AlreadyConfigured = 4,
+    /// The trade has no split.
     NotConfigured = 5,
+    /// Payout amount must be greater than zero.
     AmountNotPositive = 6,
 }
 
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Share {
+    /// Recipient.
     pub party: Address,
     /// Basis points. All shares for a trade must total exactly 10,000.
     pub bps: i128,
@@ -46,7 +57,9 @@ pub struct Share {
 #[contracttype]
 #[derive(Clone)]
 enum Key {
+    /// Instance: the only address allowed to configure splits.
     Coordinator,
+    /// Persistent: `Vec<Share>` by trade id.
     Shares(BytesN<32>),
 }
 
@@ -58,9 +71,12 @@ impl Splitter {
     /// Set in the deploy transaction, so the role cannot be claimed by a
     /// stranger between deployment and first use.
     pub fn __constructor(env: Env, coordinator: Address) {
-        env.storage().instance().set(&Key::Coordinator, &coordinator);
+        env.storage()
+            .instance()
+            .set(&Key::Coordinator, &coordinator);
     }
 
+    /// The address allowed to configure splits.
     pub fn coordinator(env: Env) -> Address {
         env.storage().instance().get(&Key::Coordinator).unwrap()
     }
@@ -102,6 +118,7 @@ impl Splitter {
         Ok(())
     }
 
+    /// Returns the split for a trade.
     pub fn shares(env: Env, trade_id: BytesN<32>) -> Result<Vec<Share>, Error> {
         env.storage()
             .persistent()
@@ -111,8 +128,9 @@ impl Splitter {
 
     /// Pays every party their share of `amount` from `from`.
     ///
-    /// The rounding remainder goes to the last share, which by convention is
-    /// the cooperative. Every stroop is accounted for and none stays here.
+    /// Authorised by `from`. The rounding remainder goes to the last share, which
+    /// by convention is the cooperative, so the parts always sum to `amount` and
+    /// nothing stays in this contract.
     pub fn distribute(
         env: Env,
         trade_id: BytesN<32>,

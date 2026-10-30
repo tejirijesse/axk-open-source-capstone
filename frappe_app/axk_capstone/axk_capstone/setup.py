@@ -1,3 +1,5 @@
+"""Install and migrate hooks."""
+
 import frappe
 
 DEMO_ROLE = "AXK Capstone Demo"

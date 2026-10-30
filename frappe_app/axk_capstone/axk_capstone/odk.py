@@ -12,6 +12,7 @@ submission can never be imported twice.
 import hashlib
 import re
 import xml.etree.ElementTree as ET
+from urllib.parse import unquote
 
 FORM_ID = "axk_inspection"
 
@@ -29,7 +30,7 @@ GRADES = ("A", "B", "C")
 
 
 class SubmissionError(ValueError):
-    pass
+    """The submission is malformed or fails validation."""
 
 
 def _local(tag):
@@ -50,8 +51,6 @@ def lot_ref_from(value):
     value = (value or "").strip()
     m = re.search(r"[?&]ref=([^&#\s]+)", value)
     if m:
-        from urllib.parse import unquote
-
         value = unquote(m.group(1))
     return value[:128]
 
@@ -135,7 +134,8 @@ def _guest_post(fn):
 @_guest_post
 def import_submission():
     """Sign the inspection described by one ODK submission. Same access guard and rate limit as the
-    Inspector screen.
+    Inspector screen. Raises on a refused submission, a duplicate instance ID, an unknown lot or a lot not
+    awaiting inspection.
 
     POST /api/method/axk_capstone.odk.import_submission with the submission XML as the request body
     (Content-Type: application/xml). The raw body is used because form fields are HTML-escaped by Frappe,

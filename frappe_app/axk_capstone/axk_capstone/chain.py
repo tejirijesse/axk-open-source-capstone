@@ -33,6 +33,15 @@ PERSONAS = {
     "issuer": {"identity": "axk-issuer", "name": "RWF test issuer", "role": "Token issuer"},
 }
 SPLIT_BPS = [("member1", 4000), ("member2", 4000), ("coop", 2000)]
+# Only these personas hold the RWF token.
+TOKEN_HOLDERS = ("coop", "buyer")
+# Balances are re-read after every transaction (forget_balances), so the cache only has to cover page loads.
+BALANCE_TTL = 120
+
+REJECT_REASONS = [
+    "Moisture above tolerance", "Weight below declared", "Foreign matter or defects",
+    "Grade below declared", "Pest or mould damage", "Documents missing or inconsistent",
+]
 
 TX_RE = re.compile(r"/tx/([0-9a-f]{64})")
 ERR_RE = re.compile(r"Error\(Contract, #(\d+)\)")
@@ -46,10 +55,11 @@ CONTRACT_ERRORS = {
 
 
 class ChainError(Exception):
-    pass
+    """A chain call failed; the message is safe to show to the user."""
 
 
 def conf():
+    """The `axk_stellar` site config; raises ChainError if a contract id is missing."""
     c = frappe.conf.get("axk_stellar") or {}
     missing = [k for k in ("registry", "escrow", "splitter", "attestation", "token") if not c.get(k)]
     if missing:
@@ -58,14 +68,20 @@ def conf():
 
 
 def sha256_hex(text):
+    """Hex SHA-256 of a UTF-8 string."""
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
 def canonical(obj):
+    """Deterministic JSON (sorted keys, no whitespace) so the same record always hashes the same."""
     return json.dumps(obj, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
 
 
 def _run(args, contract=None, timeout=90):
+    """Run a stellar-cli command; return (stdout, tx hash or None).
+
+    `contract` ("registry" or "escrow") selects the table used to translate `Error(Contract, #n)`.
+    Raises ChainError on timeout or non-zero exit."""
     c = conf()
     cmd = [c.get("stellar_bin") or "stellar", *args]
     try:
@@ -85,6 +101,9 @@ def _run(args, contract=None, timeout=90):
 
 
 def invoke(contract_key, fn, source, args, send=True, extra=None):
+    """Invoke `fn` on one of the configured contracts, signed by keystore identity `source`.
+
+    send=False simulates a read without submitting a transaction. `args` become `--name value` pairs."""
     c = conf()
     cmd = ["contract", "invoke", "--id", c[contract_key], "--source", source,
            "--network", c.get("network", "testnet")]
@@ -95,10 +114,11 @@ def invoke(contract_key, fn, source, args, send=True, extra=None):
     cmd += ["--", fn]
     for k, v in args.items():
         cmd += [f"--{k}", str(v)]
-    return _run(cmd, contract="registry" if contract_key == "registry" else "escrow" if contract_key == "escrow" else None)
+    return _run(cmd, contract=contract_key if contract_key in CONTRACT_ERRORS else None)
 
 
 def address(persona):
+    """Stellar public address of a persona's keystore identity (cached)."""
     key = f"axk_capstone:addr:{persona}"
     cached = frappe.cache().get_value(key)
     if cached:
@@ -108,12 +128,8 @@ def address(persona):
     return out.strip()
 
 
-# Balances are re-read after every transaction (forget_balances), so the cache only has to cover page loads.
-BALANCE_TTL = 120
-TOKEN_HOLDERS = ("coop", "buyer")
-
-
 def balance_rwf(persona):
+    """RWF token balance of a persona, in whole units (cached for BALANCE_TTL)."""
     key = f"axk_capstone:bal:{persona}"
     cached = frappe.cache().get_value(key)
     if cached is not None:
@@ -125,11 +141,13 @@ def balance_rwf(persona):
 
 
 def forget_balances():
+    """Drop cached balances; call after any transaction."""
     for p in PERSONAS:
         frappe.cache().delete_value(f"axk_capstone:bal:{p}")
 
 
 def tx_url(h):
+    """Block explorer URL for a transaction hash, or None."""
     return f"{EXPLORER}/tx/{h}" if h else None
 
 
@@ -138,13 +156,14 @@ def tx_url(h):
 # ---------------------------------------------------------------------------
 
 def _stamp_contracts(doc):
+    """Record the contract ids used for this trade on the document."""
     c = conf()
     for k in ("registry", "escrow", "splitter", "attestation", "token"):
         doc.set(k, c[k])
 
 
 def register_lot(doc):
-    """Cooperative commits to the lot record's digest in the lot registry."""
+    """Cooperative commits to the lot record's digest in the lot registry. Sets the chain lot id and status."""
     _stamp_contracts(doc)
     doc.cooperative_name = PERSONAS["coop"]["name"]
     doc.cooperative_account = address("coop")
@@ -164,14 +183,8 @@ def register_lot(doc):
     doc.status = "Registered"
 
 
-REJECT_REASONS = [
-    "Moisture above tolerance", "Weight below declared", "Foreign matter or defects",
-    "Grade below declared", "Pest or mould damage", "Documents missing or inconsistent",
-]
-
-
 def inspect_lot(doc, passed, grade, quantity_kg, moisture_pct, notes, reject_reason=None, field_capture=None):
-    """Authorised inspector signs one pass/fail inspection against the lot.
+    """Authorised inspector signs one pass/fail inspection against the lot. Sets status Approved or Rejected.
 
     field_capture: for an inspection captured offline (odk.py), the source submission's ID and SHA-256, so the
     report digest on-chain commits to exactly what was recorded in the field."""
@@ -205,7 +218,9 @@ def inspect_lot(doc, passed, grade, quantity_kg, moisture_pct, notes, reject_rea
 
 
 def fund_escrow(doc, amount_rwf):
-    """Buyer locks payment in escrow. Buyer and verifier both sign; the payee comes from the registry."""
+    """Buyer locks payment in escrow. Buyer and verifier both sign; the payee comes from the registry.
+
+    Sets status Funded."""
     c = conf()
     doc.buyer_name = PERSONAS["buyer"]["name"]
     doc.buyer_account = address("buyer")
@@ -224,12 +239,25 @@ def fund_escrow(doc, amount_rwf):
 
 
 def _checkpoint(doc):
+    """Persist progress mid-settlement so completed steps survive a later failure."""
     doc.save(ignore_permissions=True)
     frappe.db.commit()
 
 
+def waybill_attestation_id(doc):
+    """Attestation key under which the waybill digest is anchored."""
+    return sha256_hex("waybill:" + doc.waybill_ref)
+
+
+def port_attestation_id(doc):
+    """Attestation key under which the port receipt digest is anchored."""
+    return sha256_hex("port:" + doc.lot_ref + ":" + str(doc.customs_ref))
+
+
 def dispatch_logistics(doc, carrier_name=None, driver_name="Demo Driver", vehicle_plate="RAD 000D", seal_number="RW-SEAL-882194", destination_port="Kigali Logistics Platform"):
-    """Logistics carrier takes custody, seals container/truck, and signs cryptographic waybill."""
+    """Carrier takes custody, seals the load and anchors the waybill digest.
+
+    Raises ChainError unless the lot is Funded or Approved, or if the attestation fails."""
     if doc.status not in ("Funded", "Approved"):
         raise ChainError(f"{doc.lot_ref} is {doc.status}; lot must be Funded or Approved to dispatch")
 
@@ -271,7 +299,9 @@ def dispatch_logistics(doc, carrier_name=None, driver_name="Demo Driver", vehicl
 
 
 def receive_port(doc, port_name=None, container_id="MSKU-9182374", customs_ref="RW-CUST-2026-9041", seal_number=None):
-    """Port/Terminal receives shipment, verifies seal against waybill, records customs entry."""
+    """Port receives the shipment, checks the gate-in seal against the waybill and anchors the receipt digest.
+
+    Raises ChainError unless the lot is In Transit, or on a seal mismatch."""
     if doc.status != "In Transit":
         raise ChainError(f"{doc.lot_ref} is {doc.status}; lot must be In Transit to receive at port")
 
@@ -347,16 +377,10 @@ def settle(doc):
     doc.status = "Settled"
 
 
-def waybill_attestation_id(doc):
-    return sha256_hex("waybill:" + doc.waybill_ref)
-
-
-def port_attestation_id(doc):
-    return sha256_hex("port:" + doc.lot_ref + ":" + str(doc.customs_ref))
-
-
 def matches_on_chain(doc):
-    """Ask the contracts whether the stored records still hash to what was committed."""
+    """Ask the contracts whether the stored records still hash to what was committed.
+
+    Returns {record name: bool} for each record that has been anchored."""
     result = {}
     if doc.chain_lot_id:
         out, _ = invoke("registry", "matches", PERSONAS["verifier"]["identity"],
