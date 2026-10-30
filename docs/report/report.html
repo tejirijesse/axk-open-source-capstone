@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>AXK Network: Technical Report</title>
+<style>
+  @page { size: A4; }
+  body { font-family: Arial, Helvetica, sans-serif; font-size: 8.6pt; line-height: 1.34; color: #1d1d1b; margin: 0; }
+  h1 { font-size: 15pt; color: #1F6B55; margin: 0 0 2px; }
+  h2 { font-size: 10.5pt; color: #1F6B55; margin: 9px 0 3px; border-bottom: 1px solid #cfe0d9; padding-bottom: 1px; }
+  h3 { font-size: 9pt; margin: 6px 0 2px; }
+  p { margin: 0 0 4px; }
+  .meta { font-size: 8pt; color: #555; margin-bottom: 6px; }
+  .meta a { color: #1F6B55; }
+  table { border-collapse: collapse; width: 100%; margin: 3px 0 5px; font-size: 7.6pt; }
+  th, td { border: 1px solid #c9d3cf; padding: 2px 4px; vertical-align: top; text-align: left; }
+  th { background: #e3efea; }
+  .done { color: #1F6B55; font-weight: bold; }
+  .part { color: #a26a00; font-weight: bold; }
+  .not { color: #9b2c2c; font-weight: bold; }
+  code { font-family: Menlo, Consolas, monospace; font-size: 7.4pt; background: #f3f5f4; padding: 0 2px; }
+  ul { margin: 1px 0 4px 15px; padding: 0; }
+  li { margin: 0 0 1px; }
+  .fig { text-align: center; margin: 3px 0; }
+  .fig img { width: 92%; }
+  .cap { font-size: 7.2pt; color: #555; text-align: center; margin-bottom: 4px; }
+  .two { display: flex; gap: 8px; }
+  .two > div { flex: 1; }
+  .shots img { width: 100%; border: 1px solid #ccc; }
+  .pb { page-break-before: always; }
+</style>
+</head>
+<body>
+
+<h1>AXK Network: a Verification-and-Settlement Layer for Cross-Border Agricultural Trade</h1>
+<div class="meta">
+Final version of the product, technical report. Oghenetejiri Jesse, BSE Software Engineering (Low-Level / Blockchain),
+African Leadership University. Supervisor: Junior Turatsinze. October 2026.<br>
+Repository: <a href="https://github.com/tejirijesse/axk-open-source-capstone">github.com/tejirijesse/axk-open-source-capstone</a>
+(release v0.1.0, MIT). Walkthrough video: <a href="https://youtu.be/MrSXiJG_MAU">youtu.be/MrSXiJG_MAU</a>.
+Public demo (offline simulation): <a href="https://axk-open-source-capstone.vercel.app">axk-open-source-capstone.vercel.app</a>.
+</div>
+
+<h2>1. Overview</h2>
+<p>Cross-border agricultural trade around Kigali fails at two points: a buyer across the border cannot verify a lot's
+quality, quantity and origin, and payment is slow and hard to trust. AXK Network puts verification and settlement in
+one workflow. A cooperative registers a lot; an independent inspector signs it off; the buyer's payment is held in a
+smart-contract escrow that only accepts inspected lots and can only pay the cooperative that registered the lot; a
+carrier and a port record custody; on delivery the escrow releases, the payment is split between cooperative members
+and the whole trade is attested. Every step is a Stellar testnet transaction, and anyone can check a lot's history on a
+public page or by scanning its QR code, without an account.</p>
+
+<h2>2. Scope alignment and feature validation</h2>
+<p>The table maps the requirements and modules of the approved proposal (Table 1, sections 3.3 and 3.4) to the product.</p>
+<table>
+<tr><th style="width:19%">Planned feature</th><th style="width:22%">Intended purpose</th><th style="width:21%">Current status</th><th>Evidence</th></tr>
+<tr><td>Create and verify commodity records (FR, Verification Module)</td><td>A distant buyer cannot verify a lot's quality, quantity and origin</td><td class="done">Completed</td><td><code>contracts/lot_registry</code> (18 tests); <code>/trade/coop</code>; record digest committed on-chain; Fig. 3</td></tr>
+<tr><td>Independent inspection</td><td>A trusted third party vouches for the lot before money moves</td><td class="done">Completed (extended)</td><td>Write-once <code>inspect</code>; a cooperative cannot inspect its own lot; <code>/trade/inspect</code>; offline capture through ODK (<code>odk/</code>)</td></tr>
+<tr><td>Initiate and track transactions (FR, Transaction Module)</td><td>Both parties see where a trade is</td><td class="done">Completed (extended)</td><td>Nine-step timeline; state machine in <code>ledger/workflow.py</code>; logistics and port custody added</td></tr>
+<tr><td>Execute and record local-currency settlement (FR, Settlement Module)</td><td>Payment is slow, costly and untrusted</td><td class="done">Completed on testnet</td><td>RWF test token; <code>contracts/escrow</code> (27 tests), <code>splitter</code> (12), <code>attestation</code> (8); Fig. 2</td></tr>
+<tr><td>View tamper-evident verification history (FR)</td><td>Anyone can check a record without trusting a party</td><td class="done">Completed (extended)</td><td><code>/trace</code> with QR, <code>/chain</code> hash-chain explorer, GS1 EPCIS 2.0 export (validated against the GS1 schema)</td></tr>
+<tr><td>Security: cryptographic integrity (NFR)</td><td>Records cannot be changed unnoticed</td><td class="done">Completed</td><td>14 contract guarantees, each pinned by a test (<code>docs/security.md</code>)</td></tr>
+<tr><td>Performance: fast processing (NFR)</td><td>Usable in a real trade</td><td class="done">Completed</td><td>Pages {{LAT_PAGE}} ms, API {{LAT_API}} ms median; full trade {{TX_TOTAL}} s on testnet (section 4.4)</td></tr>
+<tr><td>User registration and authentication (FR)</td><td>Only the right people act in each role</td><td class="part">Partial, changed</td><td>Frappe roles and an access guard (<code>trade_api._guard</code>, rate limit); public pages need no account by design; per-user wallets are roadmap BUY-3</td></tr>
+<tr><td>Mobile client, low-literacy UI (NFR)</td><td>Works on widely available phones</td><td class="part">Partial, changed</td><td>Responsive web app tested at phone size in three browser engines (section 4.3); English only (roadmap I18N-1)</td></tr>
+<tr><td>Reliable on low-bandwidth networks (NFR)</td><td>Rural connectivity</td><td class="part">Partial</td><td>Screens ready in {{LOWEND_MED}} ms (median) on a simulated slow-3G, slow-CPU phone; inspections can be captured offline in ODK</td></tr>
+<tr><td>Extensible to new corridors (NFR)</td><td>Scale beyond one corridor</td><td class="part">Partial</td><td>Contracts are corridor-agnostic; EPCIS export; open-source roadmap with 43 items</td></tr>
+<tr><td>Interoperate with mobile money (scope 1.6)</td><td>Members paid in local currency</td><td class="not">Not implemented</td><td>Design note <code>docs/design/set-3-mojaloop-payouts.md</code>; SEP-24 anchor is roadmap SET-2</td></tr>
+<tr><td>Pilot with 30 to 50 users (objective 4)</td><td>Measure completion time and trust</td><td class="not">Not yet run</td><td>Awaiting ethics approval; instruments ready: 15-item TAM questionnaire, consent form, interview guide, observation checklist</td></tr>
+</table>
+<p><b>Justification of changes.</b> (1) <i>Stack.</i> The proposal suggested React, Node.js and PostgreSQL. The product uses
+Frappe (Python, MariaDB) because it provides role permissions, a REST layer, a database and an admin interface out of the
+box and matches AXK's existing platform, which left the effort for the trust-critical parts; the "distributed ledger"
+became Stellar Soroban for its low fees, native local-currency assets and multi-party authorisation. (2) <i>Mobile app to
+responsive web.</i> A web app needs no installation and runs in any phone browser; offline field capture is covered by
+ODK instead. (3) <i>Logistics and port roles were added</i> because the design showed a custody gap between payment and
+delivery. (4) <i>No accounts for verification</i> is deliberate: anyone can check a lot, and no personal data is shown.
+(5) The <i>pilot</i> depends on ethics approval, which is in review; all instruments are prepared.</p>
+
+<h2>3. Technical functionality</h2>
+<h3>3.1 Architecture and data handling</h3>
+<p>Four layers, as in the proposal (Fig. 2 of the proposal): <b>presentation</b> (Frappe web pages and vanilla JavaScript,
+<code>www/</code>, <code>public/js/trade.js</code>); <b>application</b> (REST endpoints in <code>trade_api.py</code> with an access
+guard and a per-user rate limit, and the object-oriented <code>ledger</code> package); <b>data and trust</b> (MariaDB for
+application records, four Soroban contracts for trust-critical state); <b>external</b> (Soroban RPC and Horizon; ODK Central;
+GS1 EPCIS consumers). The browser calls <code>/api/method/axk_capstone.trade_api.*</code> with JSON; the server builds the
+step's record, signs through <code>stellar-cli</code> with an argument list (never a shell string), stores the transaction hash,
+and returns the updated trade. Each record (lot, inspection report, waybill, port receipt, settlement) is serialised as
+canonical JSON and hashed with SHA-256; <b>only the 64-character digest goes on-chain</b>. Names, notes and farmer data stay
+off-chain, and the public page shows statuses, digests and transaction hashes only. The browser can re-hash a record with
+Web Crypto and ask the contract whether it still matches.</p>
+<div class="two shots">
+<div><img src="../screenshots/02-cooperative.jpg"><div class="cap">Fig. 1a Cooperative screen</div></div>
+<div><img src="../screenshots/05-lot-timeline.jpg"><div class="cap">Fig. 1b Lot timeline with on-chain checks</div></div>
+<div><img src="../screenshots/06-public-trace.jpg"><div class="cap">Fig. 1c Public verification with QR</div></div>
+</div>
+
+<h3>3.2 Algorithms and custom logic</h3>
+<table>
+<tr><th style="width:22%">Problem</th><th>Solution</th><th style="width:22%">Where</th></tr>
+<tr><td>Same record must always give the same proof</td><td>Canonical JSON (sorted keys, no whitespace) then SHA-256: deterministic, linear in record size; any change to any field changes the digest</td><td><code>ledger/records.py</code></td></tr>
+<tr><td>Pay only for inspected goods, only to the seller</td><td>The escrow makes a cross-contract call <code>approved_cooperative(lot_id)</code> before any transfer; the payee is read from the registry, never supplied by the caller; one live escrow per lot</td><td><code>contracts/escrow</code></td></tr>
+<tr><td>Split payments without losing money to rounding</td><td>Integer basis points (40/40/20 of 10,000); every share but the last gets <code>amount x bps / 10000</code>, the last gets <code>amount - paid</code>, so the parts always sum to the exact amount</td><td><code>contracts/splitter</code></td></tr>
+<tr><td>Detect a tampered event history</td><td>Hash chain: each event's hash is SHA-256(previous hash + payload + evidence). A single pass recomputes every link and flags the first broken one and everything after it</td><td><code>public/js/chain.js</code></td></tr>
+<tr><td>Stop anyone claiming a real lot's identity</td><td><code>lot_id = SHA-256(cooperative address + lot reference)</code>, computed on-chain</td><td><code>contracts/lot_registry</code></td></tr>
+<tr><td>Steps in the right order; recover from failures</td><td>State machine (<code>TRANSITIONS</code>); settlement saves after each of its four transactions and resumes from the first step not yet done, never repeating a payment</td><td><code>ledger/workflow.py</code></td></tr>
+<tr><td>Detect container tampering</td><td>Gate-in compares the arriving seal with the waybill's seal before anything is attested</td><td><code>ledger/workflow.py</code></td></tr>
+<tr><td>Interoperate with supply-chain systems</td><td>Maps each step to a GS1 EPCIS 2.0 event; deterministic UUIDv5 event IDs so re-exports de-duplicate</td><td><code>epcis.py</code></td></tr>
+</table>
+
+<h2>4. Testing approaches and results</h2>
+<table>
+<tr><th style="width:15%">Strategy</th><th style="width:22%">Why selected</th><th style="width:30%">How it was conducted</th><th>Results</th></tr>
+<tr><td>Unit (contracts)</td><td>Contract bugs move money and cannot be patched after deployment</td><td>Soroban test environment; one test per security guarantee and failure mode (<code>make test-contracts</code>)</td><td>65 / 65 pass across 4 contracts</td></tr>
+<tr><td>Unit (application)</td><td>Test lifecycle logic without a network</td><td><code>stellar-cli</code> replaced by a fake runner that records commands (<code>scripts/test_ledger.py</code>); EPCIS and ODK parsers</td><td>21 + 8 + 9 pass; digests identical to the pre-refactor code</td></tr>
+<tr><td>Integration / end-to-end</td><td>Prove the real system, not parts</td><td>7 scripted trades and failure modes against the server; plus a full trade on Stellar testnet with on-chain re-verification</td><td>7 / 7 pass; testnet trade settled, all 4 records matched on-chain</td></tr>
+<tr><td>Standards validation</td><td>Exports must be readable by other systems</td><td>EPCIS documents validated against the official GS1 JSON schema and CBV vocabularies</td><td>All documents valid</td></tr>
+<tr><td>Compatibility</td><td>Users have different browsers and phones</td><td>Playwright: every screen in Chromium, Firefox and WebKit at phone, tablet and desktop sizes, plus a low-end profile</td><td>{{COMPAT_OK}} / {{COMPAT_LOADS}} page loads rendered with no JavaScript errors (4.3)</td></tr>
+<tr><td>Performance</td><td>Trades must be practical; servers small</td><td>20 timed requests per endpoint; one timed testnet trade; process memory and asset sizes</td><td>See 4.4</td></tr>
+</table>
+
+<h3>4.1 Different inputs and error handling</h3>
+<table>
+<tr><th>Input</th><th>System response</th></tr>
+<tr><td>Buyer tries to pay for an uninspected lot</td><td>Contract refuses (error #10, shown as "Lot has not passed inspection"); no money moves</td></tr>
+<tr><td>Arriving seal differs from the waybill</td><td>"Tamper Alert"; nothing is attested and the lot stays In Transit</td></tr>
+<tr><td>Rejection without a reason; quantity of 0; step out of order</td><td>Refused before signing, with a plain message</td></tr>
+<tr><td>Cooperative inspects its own lot; second inspection</td><td>Contract refuses (errors #6, #4)</td></tr>
+<tr><td>ODK submission from another form, moisture over 40%, XML with entities, or imported twice</td><td>Refused; duplicate detected by the submission's instance ID</td></tr>
+<tr><td>Testnet slow or down</td><td>Step fails with "did not answer in time"; nothing is saved, no fake hash is ever recorded</td></tr>
+</table>
+
+<h3>4.2 Improvements made from test results</h3>
+<ul>
+<li>Logistics and Port screens took 66 s to open: balance look-ups for accounts that hold no token failed slowly and were not cached. Now only token holders are queried and results are cached: 1.4 s.</li>
+<li>The simulation server answered unknown URLs with files from the repository, which could expose local configuration. It now returns 404.</li>
+<li>Logistics and port steps once recorded a placeholder hash when the chain call failed. Removed: a failed transaction now fails the step.</li>
+<li>The public deployment returned 404 for every page because the host rewrote the path; and browsers kept old scripts after a deploy. Fixed with path restoration and content-hash asset versions.</li>
+<li>On the slow-phone profile the first page took 57.7 s: every screen loaded 3.9 MB of framework bundles it never used. A lean page template now loads only each screen's own CSS and JavaScript (about 2.6 KB of HTML per page); the slowest low-end load fell to 2.7 s.</li>
+<li>The live chain page broke when the Stellar testnet RPC changed its event format, which the SDK's strict parser rejected. It now reads events over plain JSON-RPC, keeping only the fields it uses.</li>
+<li>The blockchain module was one procedural file; it was restructured into classes (section 5) with 21 unit tests, and verified by a full testnet trade.</li>
+</ul>
+
+<h3>4.3 Compatibility</h3>
+<p>Host: {{BROWSERS}}. "Ready" is the time until the screen's own content has rendered, measured on the full stack (local server). {{VERCEL_NOTE}}</p>
+<table>
+<tr><th>Engine</th><th>Size</th><th>Pages OK</th><th>Median ready (ms)</th><th>Slowest (ms)</th><th>JS errors</th><th>Sideways overflow</th></tr>
+{{COMPAT_ROWS}}
+</table>
+<div class="fig"><img src="chart_compat.png"></div>
+<div class="cap">Fig. 2a Median time until each screen is ready, by browser engine and device size</div>
+
+<h3>4.4 Performance and resource use</h3>
+<p>Local server on Apple silicon (10 cores): page {{LAT_PAGE}} ms, public trace page with QR {{LAT_TRACE}} ms, lot API
+{{LAT_API}} ms and EPCIS export {{LAT_EPCIS}} ms (medians of 20). A full trade on Stellar testnet took {{TX_TOTAL}} s, of
+which settlement (four transactions) took {{TX_SETTLE}} s; almost all of it is network confirmation, roughly 5 to 6 s per
+ledger. The whole stack (web, workers, Redis, MariaDB) uses about {{MEM_TOTAL}} MB of memory at rest, so it fits a 2-core,
+4 GB server. The main script is {{JS_GZ}} KB compressed and the largest contract is {{WASM_MAX}} KB.</p>
+<div class="fig"><img src="chart_transactions.png"></div>
+<div class="cap">Fig. 2b Time per step of one full trade on Stellar testnet</div>
+
+<h2>5. Code quality and engineering practice</h2>
+<table>
+<tr><th style="width:17%">Principle</th><th>How it is applied</th></tr>
+<tr><td>Encapsulation</td><td><code>ContractClient</code> hides how a contract call is built and how errors are read; callers use typed methods such as <code>Escrow.create()</code> or <code>LotRegistry.inspect()</code>. Smart contracts keep state private behind their public functions.</td></tr>
+<tr><td>Abstraction</td><td>Abstract base classes <code>CommandRunner</code> (how commands run) and <code>CanonicalRecord</code> / <code>AttestedRecord</code> (what a record must provide).</td></tr>
+<tr><td>Inheritance</td><td><code>LotRegistry</code>, <code>Escrow</code>, <code>Splitter</code>, <code>Attestation</code>, <code>Token</code> extend <code>ContractClient</code>; <code>LotRecord</code>, <code>InspectionReport</code>, <code>Waybill</code>, <code>PortReceipt</code>, <code>SettlementRecord</code> extend the record base classes.</td></tr>
+<tr><td>Polymorphism</td><td>Each record class answers <code>attestation_key()</code> its own way, so verification loops over records without knowing their type; each contract client has its own <code>ERRORS</code> table; <code>StellarCli</code> and the test runner are interchangeable.</td></tr>
+<tr><td>SOLID / separation of concerns</td><td>The ledger package has no web-framework dependency (single responsibility, dependency inversion): configuration, clock, cache and saving are injected by <code>chain.py</code>. New contracts or record types are added by subclassing (open/closed).</td></tr>
+<tr><td>Modularity and organisation</td><td><code>contracts/</code> (one crate per contract), <code>frappe_app/.../ledger</code>, <code>trade_api.py</code> (HTTP), <code>verify.py</code> (public data), <code>epcis.py</code>, <code>odk.py</code>, <code>www/</code>, <code>public/</code>, <code>scripts/</code> (tests and tools), <code>docs/</code>.</td></tr>
+<tr><td>Readability and maintenance</td><td>Descriptive names (<code>a_cooperative_cannot_inspect_its_own_lot</code>), module docstrings explaining why, a Makefile with one command per task, <code>make check-env</code>, contribution guide, security policy and roadmap. History of meaningful commits on GitHub.</td></tr>
+<tr><td>Security by design</td><td>No shell strings, argument lists only; personal data never on-chain; access guard and rate limit on signing; write-once records; 14 guarantees each tested.</td></tr>
+</table>
+
+<h2>6. Limitations and next steps</h2>
+<p>Keys are held by the server for each role (custodial) and the carrier's and port's attestations are signed by the verifier
+on their behalf; non-custodial signing (roadmap BUY-3, LOG-4) is the next step before any real money. The system runs on
+testnet only; the contracts are not audited. The pilot (objective 4) starts after ethics approval, using the questionnaire
+and interview instruments already prepared. Mobile-money payout (SET-2, SET-3) and translation into Kinyarwanda, French and
+Swahili (I18N-1) are planned.</p>
+
+</body>
+</html>

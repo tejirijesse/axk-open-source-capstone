@@ -14,6 +14,8 @@ contracts release payment, split it between members and write an attestation tha
 - **Open source:** MIT licensed and open to contributions — see [CONTRIBUTING.md](CONTRIBUTING.md) and the
   step-by-step [ROADMAP.md](ROADMAP.md) (starter to advanced items for every stage of the trade).
 - **Demo video:** [AXK Capstone demo on YouTube](https://youtu.be/MrSXiJG_MAU) (recorded on the full stack, Stellar testnet).
+- **Technical report:** [docs/AXK_Technical_Report.pdf](docs/AXK_Technical_Report.pdf) (scope alignment, technical
+  functionality, testing and results, code quality).
 - **Try it online:** [axk-open-source-capstone.vercel.app](https://axk-open-source-capstone.vercel.app). This is the
   **offline simulation**: the same screens with locally generated hashes, nothing on Stellar, and demo data that
   resets. The real system runs with `make run-frappe` (see the video).
@@ -106,14 +108,34 @@ The five operational roles represent the practical core of AXK's physical and fi
 - [Offline inspection with ODK](odk/README.md)
 - [Reference projects: open standards and open-source projects AXK learns from](docs/references.md)
 
-## Tech stack
+## Technical requirements
+
+Versions this release was built and tested with. Newer patch versions should work.
+
+| Component | Version | Used for |
+|---|---|---|
+| Rust | 1.98 (stable), target `wasm32v1-none` | Smart contracts |
+| soroban-sdk | 22.0.11 | Contract framework |
+| stellar-cli | 28.0.0 | Building, deploying and signing |
+| Stellar network | testnet (Soroban RPC + Horizon) | Contracts, RWF test token |
+| Python | 3.11 | Frappe app, scripts, tests |
+| Frappe framework / bench CLI | 15.104.0 / 5.31.0 | Application server, roles, REST API, web pages |
+| MariaDB | 10.11 | Application database |
+| Redis | 7 or later (tested 8.10) | Cache and job queue |
+| Node.js | 18 or later (tested 24) | Frappe asset build |
+| Python packages | stellar-sdk 13.2, qrcode 8.2 | Chain reads, QR codes |
+| Browsers | Chrome/Edge (Chromium), Firefox, Safari (WebKit): current versions | Tested on phone, tablet and desktop sizes |
+| Operating system | macOS 15 (Apple silicon) tested; Ubuntu 22.04/24.04 expected | |
+| Hardware | 2 CPU cores, 4 GB RAM, 5 GB disk minimum | The full stack uses about 170 MB of memory at rest |
+
+Optional for the offline simulation only: Python 3.10 or later, nothing else.
 
 | Layer | Technology |
 |---|---|
-| Smart contracts | Rust, Soroban (`soroban-sdk` 22), `wasm32v1-none` — lot registry, escrow, splitter, attestation |
+| Smart contracts | Rust, Soroban: lot registry, escrow, splitter, attestation |
 | Chain | Stellar testnet; RWF test token (Stellar Asset Contract) as the local-currency stand-in |
-| Signing | `stellar-cli` 28, custodial per-role testnet identities |
-| Application | Frappe v15 (ERPNext not required), Python 3.11, MariaDB 10.11, Redis |
+| Signing | `stellar-cli`, custodial per-role testnet identities |
+| Application | Frappe v15 (ERPNext not required) with an object-oriented ledger package (`axk_capstone/ledger`) |
 | Frontend | Frappe web pages, vanilla JavaScript, hand-built SVG charts (no chart library) |
 | Chain reads | `stellar-sdk` (Python) against Soroban RPC |
 
@@ -122,7 +144,9 @@ The five operational roles represent the practical core of AXK's physical and fi
 ```
 contracts/            Soroban workspace: lot_registry, escrow, splitter, attestation (65 tests)
 frappe_app/axk_capstone/
-  axk_capstone/chain.py        custodial signer: every contract call, argument lists, no shell
+  axk_capstone/ledger/         object model: records.py (canonical records), contracts.py (one client
+                               class per contract), workflow.py (trade lifecycle state machine)
+  axk_capstone/chain.py        Frappe entry point: wires config, cache and clock into the ledger classes
   axk_capstone/trade_api.py    role endpoints and the access guard
   axk_capstone/verify.py       public lookup, PII-free fields, QR
   axk_capstone/epcis.py        GS1 EPCIS 2.0 export of a lot's public history
@@ -210,21 +234,21 @@ platform app is that app's login page, not the capstone.
 
 ## Testing
 
-Run the contract tests and the end-to-end tests together. The end-to-end tests need a server on
-`localhost:8000` (`make run-frappe` or `make run`) in another terminal:
-
 ```bash
-make test
+make test             # contracts + ledger + EPCIS + ODK unit tests, then end-to-end (needs a server on :8000)
 ```
 
-- **Contract Tests (65 tests):** Soroban workspace unit tests covering 14 security guarantees across `axk_lot_registry`, `axk_escrow`, `axk_splitter`, and `axk_attestation`.
-- **Integration Tests (7 tests):** `scripts/test_trade.py` exercises the full lifecycle and failure modes (inspection rejection, container seal tampering, invalid state transitions, unknown lots) against whatever is serving `localhost:8000`. Against the full stack every step is a real testnet transaction; against the simulation nothing is.
+| Suite | Type | Tests | Command | Needs |
+|---|---|---|---|---|
+| Smart contracts | Unit | 65 | `make test-contracts` | Rust |
+| Ledger object model | Unit (stellar-cli replaced by a fake runner) | 21 | `make test-ledger` | Python |
+| GS1 EPCIS export | Unit + validation against the official GS1 JSON schema | 8 | `make test-epcis` | Python (`jsonschema` for schema checks) |
+| ODK offline inspection | Unit + live import on testnet | 9 | `make test-odk` | Python |
+| End-to-end trade | Integration and failure modes | 7 | `make test-python` | Server on :8000 |
+| Compatibility | 3 browser engines x phone/tablet/desktop + low-end profile | 80 page loads | `python3 scripts/test_compat.py` | Playwright |
+| Performance | Response times, testnet transaction times, memory, sizes | | `AXK_PERF_TX=1 python3 scripts/measure_performance.py` | Server on :8000 |
 
-You can also run them independently:
-```bash
-make test-contracts    # Cargo test suite (65 tests)
-make test-python       # Python integration & failure-mode suite (7 tests)
-```
+Results from the latest runs: [docs/testing/](docs/testing/) (compatibility tables, screenshots and performance figures).
 
 ---
 
@@ -249,7 +273,9 @@ make test-python       # Python integration & failure-mode suite (7 tests)
 | **Attestation** | 8 | Immutable digests, ledger anchor, role-based attester gating | `cargo test -p axk-attestation` |
 | **End-to-End Integration** | 7 | Full lifecycle, seal tampering, invalid transitions, route rendering (against the server on :8000) | `python3 scripts/test_trade.py` |
 | **Stellar Testnet Demo** | 10 steps | Live on-chain deployment, Friendbot funding, live tx hashes | `make demo` |
-| **Full Combined Suite** | **72 tests** | All contracts + integration & failure-mode test paths | `make test` |
+| **Ledger object model** | 21 | Records, contract clients, workflow state machine, resumable settlement | `make test-ledger` |
+| **EPCIS + ODK** | 17 | GS1 schema validation, offline submission parsing, Central sync | `make test-epcis test-odk` |
+| **Full Combined Suite** | **110 tests** | Contracts, ledger, EPCIS, ODK and end-to-end | `make test` |
 
 The end-to-end runs and the exact contract error codes observed on-chain are recorded in
 [docs/deployments.md](docs/deployments.md).

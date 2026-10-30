@@ -22,3 +22,4 @@ docs/demo/*.mp4
 
 # Vercel CLI project link (local)
 .vercel
+docs/report/report.built.html
