@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>AXK Network: Technical Report</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+  @page {
+    size: A4 portrait;
+    margin: 10mm 12mm 10mm 12mm;
+  }
+
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    color: #1a1a1a;
+    background: #ffffff;
+    font-size: 8.4pt;
+    line-height: 1.33;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .page {
+    width: 100%;
+    height: 277mm;
+    max-height: 277mm;
+    page-break-after: always;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    overflow: hidden;
+    position: relative;
+    padding-bottom: 2mm;
+  }
+
+  .page:last-child {
+    page-break-after: avoid;
+  }
+
+  /* Header & Footer */
+  .page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1.2px solid #2d3748;
+    padding-bottom: 3px;
+    margin-bottom: 7px;
+    font-size: 7.2pt;
+    color: #4a5568;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 600;
+  }
+
+  .page-header span.inst {
+    color: #0f6e56;
+    font-weight: 700;
+  }
+
+  .page-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid #e2e8f0;
+    padding-top: 4px;
+    margin-top: 4px;
+    font-size: 7pt;
+    color: #718096;
+  }
+
+  .page-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Typography */
+  h1.doc-title {
+    font-size: 14pt;
+    font-weight: 800;
+    color: #0d1b2a;
+    line-height: 1.15;
+    margin-bottom: 2px;
+    letter-spacing: -0.3px;
+  }
+
+  .subtitle {
+    font-size: 8.6pt;
+    color: #2b6cb0;
+    font-weight: 600;
+    margin-bottom: 5px;
+  }
+
+  .meta-box {
+    background: #f7fafc;
+    border: 1px solid #e2e8f0;
+    border-left: 3.5px solid #0f6e56;
+    padding: 5px 8px;
+    margin-bottom: 7px;
+    display: grid;
+    grid-template-columns: 2fr 1.5fr 1fr;
+    font-size: 7.4pt;
+  }
+
+  .meta-item strong {
+    color: #2d3748;
+  }
+
+  h2.sec-title {
+    font-size: 9.8pt;
+    font-weight: 700;
+    color: #0f6e56;
+    border-bottom: 1px solid #cbd5e0;
+    padding-bottom: 2px;
+    margin-top: 6px;
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  h3.subsec-title {
+    font-size: 8.6pt;
+    font-weight: 700;
+    color: #2d3748;
+    margin-top: 5px;
+    margin-bottom: 3px;
+  }
+
+  p {
+    margin-bottom: 4.5px;
+    text-align: justify;
+  }
+
+  /* Tables */
+  table.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 7.2pt;
+    margin: 4px 0 6px 0;
+  }
+
+  table.data-table th, table.data-table td {
+    border: 1px solid #cbd5e0;
+    padding: 3.5px 5px;
+    text-align: left;
+    vertical-align: top;
+  }
+
+  table.data-table th {
+    background: #edf2f7;
+    color: #1a202c;
+    font-weight: 700;
+    text-transform: uppercase;
+    font-size: 6.8pt;
+    letter-spacing: 0.3px;
+  }
+
+  table.data-table tr:nth-child(even) {
+    background: #f8fafc;
+  }
+
+  .badge {
+    display: inline-block;
+    padding: 1px 4px;
+    border-radius: 3px;
+    font-size: 6.5pt;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+
+  .badge-success { background: #def7ec; color: #03543f; border: 1px solid #84e1bc; }
+  .badge-info { background: #e1effe; color: #1e429f; border: 1px solid #a4cafe; }
+  .badge-purple { background: #edebfe; color: #5521b5; border: 1px solid #cabffd; }
+
+  /* Code & Pre */
+  code, pre {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 6.8pt;
+  }
+
+  pre {
+    background: #1a202c;
+    color: #e2e8f0;
+    padding: 5px 7px;
+    border-radius: 3px;
+    margin: 4px 0;
+    line-height: 1.25;
+    overflow: hidden;
+  }
+
+  code.inline {
+    background: #edf2f7;
+    color: #c53030;
+    padding: 0.5px 3px;
+    border-radius: 2px;
+    font-size: 7pt;
+  }
+
+  /* Diagrams & Flow */
+  .diagram-box {
+    background: #f7fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 4px;
+    padding: 6px;
+    margin: 5px 0;
+  }
+
+  .grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 7px;
+  }
+
+  .grid-3 {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 6px;
+  }
+
+  .card {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 3px;
+    padding: 5px 6px;
+  }
+
+  .card-header {
+    font-weight: 700;
+    font-size: 7.6pt;
+    color: #2b6cb0;
+    margin-bottom: 2px;
+    border-bottom: 1px dashed #cbd5e0;
+    padding-bottom: 2px;
+  }
+
+  ul, ol {
+    margin-left: 14px;
+    margin-bottom: 4px;
+  }
+
+  li {
+    margin-bottom: 2px;
+    font-size: 8pt;
+  }
+
+  .callout {
+    background: #e6fffa;
+    border: 1px solid #b2f5ea;
+    border-left: 3px solid #0f6e56;
+    padding: 4px 6px;
+    font-size: 7.2pt;
+    margin: 4px 0;
+  }
+
+</style>
+</head>
+<body>
+<div class="page" id="page-1">
+  <div class="page-header"><span><span class="inst">African Leadership University</span> · School of Science and Technology</span><span>BSE Software Engineering Capstone (2026)</span></div>
+  <div class="page-content">
+    <h1 class="doc-title">AXK Network: Verification &amp; Settlement Layer on Stellar</h1>
+    <div class="subtitle">Technical report · Soroban smart contracts + Frappe v15 application</div>
+    <div class="meta-box">
+      <div class="meta-item"><strong>Student:</strong> Oghenetejiri Jesse<br><strong>Supervisor:</strong> Junior Turatsinze</div>
+      <div class="meta-item"><strong>Repository:</strong> github.com/tejirijesse/axk-open-source-capstone<br><strong>Demo video:</strong> youtu.be/MrSXiJG_MAU</div>
+      <div class="meta-item"><strong>Live system:</strong> capstone.axk.org (Stellar testnet)<br><strong>Offline simulation:</strong> axk-open-source-capstone.vercel.app</div>
+    </div>
+    <h2 class="sec-title">1. Problem and approach</h2>
+    <p>Cross-border agricultural trade between Rwanda, the DRC and Uganda fails at two points: a buyer cannot verify a lot's quality, custody and container integrity along the corridor, and settlement is slow and hard to trust. This project puts both in one workflow. A cooperative registers a lot, an independent inspector signs it off on-chain, a buyer locks payment in escrow, a carrier records dispatch under a container seal, the port checks the seal and records clearance, and on delivery confirmation the contracts release payment, split it 40/40/20 between members and write an attestation anyone can check through a QR code. Four Soroban contracts (lot registry, escrow, splitter, attestation) hold the rules; a Frappe v15 app holds the roles, screens and signing.</p>
+    <h2 class="sec-title">2. Scope: planned versus delivered</h2>
+    <table class="data-table">
+      <thead><tr><th style="width:17%">Scope item</th><th style="width:11%">Status</th><th style="width:44%">Evidence in the repository</th><th style="width:28%">Limit or change from plan</th></tr></thead>
+      <tbody>
+        <tr><td><strong>1. Lot registry</strong></td><td><span class="badge badge-success">Delivered</span></td><td><code>contracts/lot_registry</code>, 18 tests; lot id is <code>sha256(cooperative || lot_ref)</code>, so an id cannot be squatted; registration is write-once.</td><td>Only a digest of the lot record goes on-chain.</td></tr>
+        <tr><td><strong>2. Independent inspection</strong></td><td><span class="badge badge-success">Delivered</span></td><td><code>/trade/inspect</code> queue; inspector must be on the registry's allow-list; test <code>a_cooperative_cannot_inspect_its_own_lot</code>. Offline capture in ODK (<code>odk/</code>, <code>odk.py</code>).</td><td>ODK import was added beyond the first plan, for sites without signal.</td></tr>
+        <tr><td><strong>3. Escrow</strong></td><td><span class="badge badge-success">Delivered</span></td><td><code>contracts/escrow</code>, 27 tests; asks the registry whether the lot passed before any transfer; <code>create</code> has no payee argument, <code>release</code> takes only a trade id.</td><td>Rebuilt around the registry (inspection gate, one live escrow per lot).</td></tr>
+        <tr><td><strong>4. Logistics and seal</strong></td><td><span class="badge badge-success">Delivered</span></td><td><code>/trade/logistics</code>; <code>chain.dispatch_logistics</code> attests the waybill digest.</td><td>Attestation is signed by the AXK verifier key for the carrier. Carrier self-signing is roadmap LOG-4.</td></tr>
+        <tr><td><strong>5. Port gate-in</strong></td><td><span class="badge badge-success">Delivered</span></td><td><code>/trade/port</code>; <code>chain.receive_port</code> compares the arriving seal to the waybill and attests the port receipt.</td><td>The seal match is an application check, not a contract rule (roadmap PORT-1).</td></tr>
+        <tr><td><strong>6. Settlement and split</strong></td><td><span class="badge badge-success">Delivered</span></td><td><code>contracts/splitter</code>, 12 tests; <code>chain.settle</code> releases escrow, records the split and writes the final attestation.</td><td>Token is a Stellar test asset standing in for RWF.</td></tr>
+        <tr><td><strong>7. Public trace and explorer</strong></td><td><span class="badge badge-success">Delivered</span></td><td><code>/trace</code> (no login, no personal data, QR, GS1 EPCIS 2.0 download via <code>epcis.py</code>); <code>/chain</code> live Soroban event reader (<code>stellar_live.py</code>).</td><td>The five-year history on <code>/chain</code> is labelled synthetic seed data.</td></tr>
+      </tbody>
+    </table>
+    <div class="callout"><strong>Not done:</strong> the field pilot in Kigali has not been run, so nothing here is pilot evidence. Mainnet use needs an external contract audit first. Both are stated in the README and <code>docs/security.md</code>.</div>
+  </div>
+  <div class="page-footer"><span>AXK Network · Capstone Technical Report</span><span>Oghenetejiri Jesse (ALU 2026)</span><span>Page 1 of 5</span></div>
+</div>
+
+<div class="page" id="page-2">
+  <div class="page-header"><span><span class="inst">African Leadership University</span> · School of Science and Technology</span><span>BSE Software Engineering Capstone (2026)</span></div>
+  <div class="page-content">
+    <h2 class="sec-title">3. Functionality and architecture</h2>
+    <div class="grid-3" style="text-align:center;font-size:7pt;margin-bottom:6px">
+      <div class="card"><div class="card-header">Application (Frappe v15)</div>MariaDB 10.11, Redis<br>DocType <code>AXK Chain Trade</code><br>Role endpoints in <code>trade_api.py</code><br>Pages <code>www/trade/*</code>, <code>/trace</code>, <code>/chain</code></div>
+      <div class="card"><div class="card-header">Custodial signer (<code>chain.py</code>)</div>One testnet identity per role<br>Calls <code>stellar-cli</code> with argument lists, no shell<br>Canonical JSON then SHA-256<br>Contract error codes mapped to messages</div>
+      <div class="card"><div class="card-header">Stellar testnet (Soroban)</div>Lot registry, escrow, splitter, attestation<br>Rust, <code>soroban-sdk</code> 22, <code>wasm32v1-none</code><br>RWF test token (Stellar Asset Contract)</div>
+    </div>
+    <p>Each of the six trade steps is one HTTP call from a role screen to a whitelisted function in <code>trade_api.py</code>. The function checks the login and role, calls the matching function in <code>chain.py</code>, which builds the canonical record, hashes it, invokes the contract and stores the transaction hash on the <code>AXK Chain Trade</code> document. If the chain call fails, the step fails and nothing is recorded, so the database never claims something the ledger did not accept. Reads for the public pages come from the stored hashes, re-checked against the contracts by <code>matches_on_chain</code>, and the browser re-hashes the records itself.</p>
+    <h3 class="subsec-title">3.1 Controls on the application layer</h3>
+    <ul>
+      <li><strong>Access guard:</strong> <code>_guard()</code> in <code>trade_api.py</code> allows a signed-in user with the AXK Capstone Demo role (or System Manager). Demo mode (<code>axk_demo_mode</code>) only works for requests made directly on loopback; anything through a proxy is refused. The hosted site runs with demo mode off.</li>
+      <li><strong>Throttle:</strong> <code>_throttle()</code> caps 30 signed transactions per user per hour, keyed by user and not by IP, so a shared reviewer login cannot spam testnet.</li>
+      <li><strong>Keys:</strong> per-role Stellar identities live on the server under the service user (directory 700, files 600, outside git). The browser never holds a key. See <code>docs/handover.md</code> and <code>docs/security.md</code>.</li>
+      <li><strong>Privacy:</strong> <code>verify.py</code> exposes a fixed list of PII-free fields to the public trace page.</li>
+    </ul>
+    <h3 class="subsec-title">3.2 Two ways to run it</h3>
+    <p><strong>Full stack</strong> (<code>make run-frappe</code>): every action is a real Stellar testnet transaction; this is what capstone.axk.org and the demo video show. <strong>Offline simulation</strong> (<code>make run</code>, <code>scripts/server.py</code>, Python only): the same screens with locally generated hashes, labelled "Offline simulation, not on-chain" on every page and never linked to a block explorer. It exists so the screens can be tried and the end-to-end tests run without a bench.</p>
+    <h3 class="subsec-title">3.3 What was exercised on testnet</h3>
+    <p><code>docs/deployments.md</code> records a run of <code>scripts/demo.sh</code> on 29 September 2026 with the contract IDs, transaction links and the exact errors the contracts returned: funding before inspection gives <code>Error(Contract, #10)</code> <code>LotNotApproved</code>; a cooperative inspecting its own lot gives <code>#3</code> <code>NotAnInspector</code>; a second escrow on a sold lot gives <code>#11</code> <code>LotInEscrow</code>; a stranger calling release is refused.</p>
+    <h3 class="subsec-title">3.4 Standards and interoperability</h3>
+    <p>Every lot's public history exports as a GS1 EPCIS 2.0 document (<code>epcis.py</code>, validated against the official schema when <code>jsonschema</code> is installed). Inspections captured offline in ODK are imported through <code>odk.py</code> and signed on import.</p>
+  </div>
+  <div class="page-footer"><span>AXK Network · Capstone Technical Report</span><span>Oghenetejiri Jesse (ALU 2026)</span><span>Page 2 of 5</span></div>
+</div>
+
+<div class="page" id="page-3">
+  <div class="page-header"><span><span class="inst">African Leadership University</span> · School of Science and Technology</span><span>BSE Software Engineering Capstone (2026)</span></div>
+  <div class="page-content">
+    <h2 class="sec-title">4. Testing</h2>
+    <p>Four suites cover three approaches: unit tests of contract logic in a mocked Soroban environment, end-to-end and failure-mode tests of the application, and standards/offline-capture tests. Counts below are from running the suites on 30 October 2026.</p>
+    <table class="data-table">
+      <thead><tr><th style="width:21%">Suite</th><th style="width:9%">Tests</th><th style="width:48%">What it checks</th><th style="width:22%">Run and result</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Lot registry</strong><br><code>contracts/lot_registry</code></td><td>18</td><td>Write-once registration, allow-listed inspectors, cooperative cannot inspect its own lot, unknown lot returns an error instead of panicking.</td><td rowspan="4"><code>make test-contracts</code> (<code>cargo test</code>)<br><strong>65 passed, 0 failed</strong></td></tr>
+        <tr><td><strong>Escrow</strong><br><code>contracts/escrow</code></td><td>27</td><td>Inspection gate, fixed payee, verifier-only release, deadline refund, one live escrow per lot, zero and negative amounts.</td></tr>
+        <tr><td><strong>Splitter</strong><br><code>contracts/splitter</code></td><td>12</td><td>Shares sum to 100%, configuration is fixed once set, remainder goes to the last share so no unit is lost.</td></tr>
+        <tr><td><strong>Attestation</strong><br><code>contracts/attestation</code></td><td>8</td><td>Digest is write-once, only the attester writes, unknown trade is an error.</td></tr>
+        <tr><td><strong>End to end</strong><br><code>scripts/test_trade.py</code></td><td>7</td><td>Overview and personas, full lifecycle, inspection rejection, seal tamper detection, invalid state transitions, unknown lot, web routes and trace rendering.</td><td><code>make test-python</code> against the offline simulation: <strong>7 passed</strong></td></tr>
+        <tr><td><strong>EPCIS export</strong><br><code>scripts/test_epcis.py</code></td><td>8</td><td>Event structure and schema validation of the GS1 EPCIS 2.0 document.</td><td><code>make test-epcis</code>: <strong>8 passed</strong></td></tr>
+        <tr><td><strong>ODK offline</strong><br><code>scripts/test_odk.py</code></td><td>9</td><td>Form, importer and ODK Central sync; imports new submissions once and skips rejected ones.</td><td><code>make test-odk</code>: <strong>8 passed, 1 skipped</strong> (live signing needs <code>AXK_ODK_LIVE=1</code>)</td></tr>
+      </tbody>
+    </table>
+    <p><strong>Total: 89 tests defined; 88 run, 88 passed, 1 skipped by design.</strong> The 14 contract guarantees in <code>docs/security.md</code> each name the test that pins them.</p>
+    <h3 class="subsec-title">4.1 Failure-mode tests (money and integrity paths)</h3>
+    <p>Because escrow and settlement move value, failure paths were written before happy-path polish. Examples from the contract suite, in <code>contracts/*/src/test.rs</code>:</p>
+    <pre><code>#[test]
+fn a_cooperative_cannot_inspect_its_own_lot() { /* inspect by the owner returns Error::NotAnInspector */ }
+#[test]
+fn inspecting_an_unknown_lot_is_an_error_not_a_panic() { /* typed error, no abort */ }
+#[test]
+fn an_unknown_trade_id_is_an_error_not_a_panic() { /* escrow and splitter */ }</code></pre>
+    <p>The end-to-end suite adds the application side: a rejected lot cannot be funded, a container arriving with a different seal than the waybill is flagged and blocked, a buyer cannot confirm delivery before dispatch, and a lot that was never registered returns an error with no state change. On Stellar testnet the same refusals were observed as real contract errors (section 3.3).</p>
+    <h3 class="subsec-title">4.2 What testing does not cover</h3>
+    <p>The end-to-end tests ran here against the offline simulation; against the full stack each step is a testnet transaction and takes seconds, so that run is done by hand (<code>make demo</code>, the demo video). There is no load test, no browser-automation suite and no external audit of the contracts.</p>
+  </div>
+  <div class="page-footer"><span>AXK Network · Capstone Technical Report</span><span>Oghenetejiri Jesse (ALU 2026)</span><span>Page 3 of 5</span></div>
+</div>
+
+<div class="page" id="page-4">
+  <div class="page-header"><span><span class="inst">African Leadership University</span> · School of Science and Technology</span><span>BSE Software Engineering Capstone (2026)</span></div>
+  <div class="page-content">
+    <h2 class="sec-title">5. Performance and browser compatibility</h2>
+    <h3 class="subsec-title">5.1 Payload and response time (measured)</h3>
+    <table class="data-table">
+      <thead><tr><th>Item</th><th>Raw</th><th>gzip</th></tr></thead>
+      <tbody>
+        <tr><td><code>public/js/trade.js</code> (role screens)</td><td>63.8 KB</td><td>16.2 KB</td></tr>
+        <tr><td><code>public/js/chain.js</code> (explorer, hash verifier)</td><td>28.3 KB</td><td>8.7 KB</td></tr>
+        <tr><td><code>public/css/axk.css</code> + <code>chain.css</code></td><td>29.2 KB</td><td>7.1 KB</td></tr>
+      </tbody>
+    </table>
+    <p>The screens use no frontend framework and no chart library (SVG is hand-built), so the heaviest page ships about 32 KB of gzipped assets. Against the offline simulation on a laptop, <code>/trade</code>, <code>/trace</code> and <code>/chain</code> each returned in about 1 ms (2.4 KB, 5.3 KB and 6.6 KB gzipped HTML). Records are re-hashed in the browser with the WebCrypto SHA-256 API. These are server-side local figures, not field measurements over 3G; no mobile-network test was run.</p>
+    <p>On the full stack the time is dominated by Stellar: each action is a signed transaction submitted through <code>stellar-cli</code> and confirmed in a ledger close, which takes a few seconds on testnet (not benchmarked here). The signer therefore runs a call with a 90 second timeout and reports a clear "Stellar testnet did not answer in time" error instead of hanging. Wallet balances are cached (<code>forget_balances</code> clears them after a payment) so role screens open without a chain read per row. The chain explorer reads events from Soroban RPC, which only keeps about 7 days of history; the pilot plan adds an indexer for that.</p>
+    <h3 class="subsec-title">5.2 Browser compatibility</h3>
+    <p>The front end is plain HTML, CSS and JavaScript with <code>fetch</code>, inline SVG and WebCrypto, all of which are available in current Chrome, Edge, Firefox and Safari, and in mobile Chrome and Safari. The responsive layout targets phones used by cooperative and field staff. No formal cross-browser test matrix was run, and I do not claim one. One known quirk is recorded in the README: Safari does not resolve <code>*.localhost</code>, so local use needs <code>http://localhost:8000</code>.</p>
+    <h3 class="subsec-title">5.3 Deployment and platform</h3>
+    <p>Tested on macOS 15 (Apple silicon) with Homebrew, and on the hosted Ubuntu 24.04 VM (nginx, supervisor, Frappe v15, MariaDB 10.11, Redis) at capstone.axk.org. Tool versions: Rust stable with target <code>wasm32v1-none</code>, <code>soroban-sdk</code> 22, <code>stellar-cli</code> 28, Python 3.11. The hosted site has demo mode off and requires a login to sign. Operation, restart and checks are in <code>docs/handover.md</code>.</p>
+  </div>
+  <div class="page-footer"><span>AXK Network · Capstone Technical Report</span><span>Oghenetejiri Jesse (ALU 2026)</span><span>Page 4 of 5</span></div>
+</div>
+
+<div class="page" id="page-5">
+  <div class="page-header"><span><span class="inst">African Leadership University</span> · School of Science and Technology</span><span>BSE Software Engineering Capstone (2026)</span></div>
+  <div class="page-content">
+    <h2 class="sec-title">6. Code quality and object-oriented design</h2>
+    <p>The code base is about 2,300 lines across the four contracts and the Frappe app modules, with no module doing two jobs. The object-oriented structure sits in three places: the contracts, the Frappe document model, and the layering between them.</p>
+    <h3 class="subsec-title">6.1 Contracts: types, encapsulation, typed errors</h3>
+    <table class="data-table">
+      <thead><tr><th style="width:24%">Contract and file</th><th style="width:34%">Types</th><th style="width:42%">Design point</th></tr></thead>
+      <tbody>
+        <tr><td><code>contracts/lot_registry/src/lib.rs</code></td><td><code>LotRegistry</code> (contract), <code>Lot</code>, <code>Inspection</code> (structs), <code>LotStatus</code> (enum), <code>Error</code></td><td>State is private to the contract; the only way to change a <code>Lot</code> is a method that checks the caller. Status moves forward only.</td></tr>
+        <tr><td><code>contracts/escrow/src/lib.rs</code></td><td><code>Escrow</code> contract, trade record, <code>Error</code> with 10 named codes (<code>LotNotApproved = 10</code>, <code>LotInEscrow = 11</code>)</td><td>Depends on the registry only through its client interface (cross-contract call), so the two evolve separately.</td></tr>
+        <tr><td><code>contracts/splitter/src/lib.rs</code></td><td><code>Splitter</code> contract, <code>Share</code> struct (party, basis points), <code>Error</code></td><td>Shares are fixed per trade at configuration time and cannot be edited afterwards.</td></tr>
+        <tr><td><code>contracts/attestation/src/lib.rs</code></td><td><code>Registry</code> contract, <code>Attestation</code> struct, <code>Error</code></td><td>Write-once digest per trade; only the attester can write.</td></tr>
+      </tbody>
+    </table>
+    <p>Failures are values, not panics: each contract defines a <code>#[contracterror]</code> enum, and <code>chain.py</code> maps the numeric code back to a readable message (<code>CONTRACT_ERRORS</code>), so an operator sees "lot not approved" rather than "Error(Contract, #10)".</p>
+    <h3 class="subsec-title">6.2 Application: model, service layer, boundary</h3>
+    <ul>
+      <li><strong>Model:</strong> <code>AXKChainTrade(Document)</code> in <code>frappe_app/axk_capstone/axk_capstone/axk_capstone/doctype/axk_chain_trade/axk_chain_trade.py</code> is the persistent record of one trade (79 fields: lot record and digest, report digest, one transaction hash per on-chain step). Permissions and field rules are declared in its JSON schema.</li>
+      <li><strong>Service layer:</strong> <code>chain.py</code> exposes one function per trade step (<code>register_lot</code>, <code>inspect_lot</code>, <code>fund_escrow</code>, <code>dispatch_logistics</code>, <code>receive_port</code>, <code>settle</code>) that takes the document and updates it. All process execution is behind a single private function <code>_run</code>, so the transport (<code>stellar-cli</code> today) is replaceable in one place. <code>ChainError</code> is the single exception type crossing the boundary; <code>_fail</code> in <code>trade_api.py</code> records it on the document.</li>
+      <li><strong>Boundary:</strong> <code>trade_api.py</code> holds only whitelisted endpoints plus <code>_guard</code> and <code>_throttle</code>; it contains no contract details. <code>verify.py</code>, <code>epcis.py</code> and <code>odk.py</code> each own one concern (public lookup, standards export, offline import).</li>
+    </ul>
+    <p>I am not claiming a Strategy or Repository class hierarchy: the Python side is a thin service module around one Document class and one exception class, which is the idiomatic Frappe shape. The inheritance and encapsulation come from the Frappe <code>Document</code> base and from the Soroban contract types.</p>
+    <h3 class="subsec-title">6.3 Algorithms worth reading</h3>
+    <div class="grid-2">
+      <div class="card"><div class="card-header">Canonical digest (<code>chain.py</code>)</div><pre><code>def canonical(obj):
+    return json.dumps(obj, sort_keys=True,
+        separators=(",", ":"), ensure_ascii=False)
+def sha256_hex(text):
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()</code></pre>Sorted keys and no whitespace make the same record hash the same in Python, in the browser re-check and in the EPCIS export.</div>
+      <div class="card"><div class="card-header">Lossless split (<code>splitter</code>)</div><pre><code>let part = if i as u32 == last {
+    amount - paid          // remainder
+} else {
+    amount * share.bps / BPS
+};
+paid += part;</code></pre>Integer division truncates; the last share receives what is left, so the parts always add up to the amount paid in.</div>
+    </div>
+    <h3 class="subsec-title">6.4 Project hygiene</h3>
+    <p>MIT licence, <code>CONTRIBUTING.md</code>, <code>ROADMAP.md</code> with starter-to-advanced tracks per trade stage, <code>SECURITY.md</code>, <code>CHANGELOG.md</code>, issue and PR templates, and a <code>Makefile</code> with one command per task. Secrets stay out of git: testnet identities are in the stellar-cli keystore on the server. Deliverables: this report, the repository, the demo video and the hosted system.</p>
+  </div>
+  <div class="page-footer"><span>AXK Network · Capstone Technical Report</span><span>Oghenetejiri Jesse (ALU 2026)</span><span>Page 5 of 5</span></div>
+</div>
+
+</body>
+</html>

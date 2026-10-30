@@ -13,6 +13,10 @@ contracts release payment, split it between members and write an attestation tha
 - **Repository:** https://github.com/tejirijesse/axk-open-source-capstone
 - **Open source:** MIT licensed and open to contributions — see [CONTRIBUTING.md](CONTRIBUTING.md) and the
   step-by-step [ROADMAP.md](ROADMAP.md) (starter to advanced items for every stage of the trade).
+- **Live system:** https://capstone.axk.org — the full stack on Stellar testnet. Trade screens need a login
+  (reviewer credentials are given with the submission); the public trace page `/trace/lot?ref=<lot>` is open.
+  How it is hosted, restarted and checked: [docs/handover.md](docs/handover.md).
+- **Technical report (PDF):** [docs/AXK-Capstone-Technical-Report.pdf](docs/AXK-Capstone-Technical-Report.pdf)
 - **Demo video:** [AXK Capstone demo on YouTube](https://youtu.be/MrSXiJG_MAU) (recorded on the full stack, Stellar testnet).
 - **Try it online:** [axk-open-source-capstone.vercel.app](https://axk-open-source-capstone.vercel.app). This is the
   **offline simulation**: the same screens with locally generated hashes, nothing on Stellar, and demo data that
@@ -138,7 +142,8 @@ scripts/server.py     offline simulation of the screens (no blockchain)
 scripts/test_trade.py end-to-end lifecycle and failure-mode tests
 scripts/test_epcis.py GS1 EPCIS export tests (validated against the official schema)
 scripts/test_odk.py   ODK form, importer and Central-sync tests
-docs/                 architecture, security, deployments, references, history dataset, screenshots
+docs/                 architecture, security, deployments, handover, technical report (PDF + HTML), screenshots
+scripts/generate_report.py  rebuilds the technical report from report_body.html and report.css
 .github/              issue and pull request templates
 ROADMAP.md            step-by-step contribution tracks for every stage of the trade
 CONTRIBUTING.md       setup, workflow and project rules
@@ -158,7 +163,7 @@ There are two ways to run it. Only the full stack touches the blockchain.
 
 ### Full stack (Stellar testnet)
 
-Tested on macOS 15 (Apple silicon) with Homebrew. ERPNext and AXK's platform app are **not** needed.
+Tested on macOS 15 (Apple silicon) with Homebrew, and on an Ubuntu 24.04 server (the hosted instance). ERPNext and AXK's platform app are **not** needed.
 
 ```bash
 git clone https://github.com/tejirijesse/axk-open-source-capstone.git && cd axk-open-source-capstone
@@ -249,7 +254,9 @@ make test-python       # Python integration & failure-mode suite (7 tests)
 | **Attestation** | 8 | Immutable digests, ledger anchor, role-based attester gating | `cargo test -p axk-attestation` |
 | **End-to-End Integration** | 7 | Full lifecycle, seal tampering, invalid transitions, route rendering (against the server on :8000) | `python3 scripts/test_trade.py` |
 | **Stellar Testnet Demo** | 10 steps | Live on-chain deployment, Friendbot funding, live tx hashes | `make demo` |
-| **Full Combined Suite** | **72 tests** | All contracts + integration & failure-mode test paths | `make test` |
+| **EPCIS export** | 8 | GS1 EPCIS 2.0 structure, schema validation, no private fields exported (no server) | `python3 scripts/test_epcis.py` |
+| **ODK offline** | 9 (1 skipped) | Form, importer and ODK Central sync; the live-signing test needs `AXK_ODK_LIVE=1` (no server) | `python3 scripts/test_odk.py` |
+| **Full Combined Suite** | **89 tests** | 65 contract + 7 end-to-end + 8 EPCIS + 9 ODK | `make test` |
 
 The end-to-end runs and the exact contract error codes observed on-chain are recorded in
 [docs/deployments.md](docs/deployments.md).
@@ -258,7 +265,8 @@ The end-to-end runs and the exact contract error codes observed on-chain are rec
 
 | Stage | Where | What changes |
 |---|---|---|
-| **1 · Local (now)** | Frappe bench on a laptop · Stellar testnet | Demo mode on loopback only; demo keys in the stellar-cli keystore; synthetic history for the explorer |
+| **1 · Local** | Frappe bench on a laptop · Stellar testnet | Demo mode on loopback only; demo keys in the stellar-cli keystore; synthetic history for the explorer |
+| **1b · Hosted (now)** | https://capstone.axk.org — Ubuntu 24.04 VM, nginx + supervisor, Frappe v15, MariaDB 10.11, Redis · Stellar testnet | Demo mode **off**; signing needs a login with the AXK Capstone Demo role; 30 transactions per user per hour; keys `600` under the service user, outside git. See [docs/handover.md](docs/handover.md) |
 | **2 · Pilot (3 months, Kigali)** | One Ubuntu 22.04 VM (2 vCPU, 8 GB) via AXK's Ansible self-host playbook · HTTPS · Stellar testnet | Demo mode **off**; one Frappe user per participant with role permissions; per-role keys moved to a managed key store; nightly backups; an event indexer so history outlives the RPC's ~7-day window; ~30–50 traders and one cooperative |
 | **3 · Production** | Managed VM per tenant · Stellar mainnet | External contract audit first; registry admin, verifier, coordinator and attester held by four separately custodied keys; RWF test token replaced by a regulated stablecoin; cash-out to mobile money through a SEP-24 anchor; monitoring and alerting on failed transactions |
 
