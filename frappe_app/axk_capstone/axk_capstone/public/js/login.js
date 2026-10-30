@@ -39,7 +39,17 @@
       if (msg) c.setAttribute("aria-invalid", "true"); else c.removeAttribute("aria-invalid");
     });
   }
-  function safeTarget(t) { return t && t.charAt(0) === "/" && t.charAt(1) !== "/" && t.indexOf("\\") < 0 ? t : null; }
+  // Same-origin path only. The URL parser drops tabs and newlines, so "/\t/evil.com" would become "//evil.com":
+  // refuse any control character, space or backslash, then confirm the resolved origin.
+  function safeTarget(t) {
+    if (!t || !/^\/(?![\/\\])[^\x00-\x20\x7f\\]*$/.test(t)) return null;
+    // Resolving collapses dot segments ("/..//evil.com" -> "//evil.com"), so check the result's shape too.
+    try {
+      var u = new URL(t, location.origin), p = u.pathname + u.search + u.hash;
+      return u.origin === location.origin && /^\/(?![\/\\])/.test(p) ? p : null;
+    }
+    catch (e) { return null; }
+  }
 
   show.addEventListener("click", function () {
     var on = pwd.type === "password";

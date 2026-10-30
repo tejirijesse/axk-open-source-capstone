@@ -564,6 +564,30 @@ class Client:
             return e.code
 
 
+class LoginRedirect(unittest.TestCase):
+    """login.js safeTarget: only same-origin paths survive, run in node against the real source."""
+
+    def test_safe_target_refuses_off_site_redirects(self):
+        import re
+        import shutil
+        import subprocess
+        node = shutil.which("node")
+        if not node:
+            self.skipTest("node not installed")
+        src = open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "frappe_app", "axk_capstone",
+                                "axk_capstone", "public", "js", "login.js")).read()
+        fn = re.search(r"  function safeTarget\(t\) \{.*?\n  \}\n", src, re.S).group(0)
+        cases = {"/ok": "/ok", "/trade/coop?x=1#a": "/trade/coop?x=1#a",
+                 "//evil.com": None, "/\\evil.com": None, "/\t/evil.com": None, "/\n/evil.com": None,
+                 "/\r/evil.com": None, "/ /evil.com": None, "https://evil.com": None, "javascript:alert(1)": None,
+                 "/..//evil.com": None, "/.//evil.com": None, "/a/..//evil.com": None, "/%2e%2e//evil.com": None,
+                 "/a/../ok": "/ok", "": None, "evil.com": None}
+        js = ("var location={origin:'https://capstone.axk.org'};" + fn +
+              "process.stdout.write(JSON.stringify(%s.map(safeTarget)));" % json.dumps(list(cases)))
+        out = json.loads(subprocess.run([node, "-e", js], capture_output=True, text=True, check=True).stdout)
+        self.assertEqual(dict(zip(cases, out)), cases)
+
+
 @unittest.skipUnless(LIVE, "set AXK_DEMO_LIVE=1 and AXK_DEMO_PASSWORD to run against a server")
 class Live(unittest.TestCase):
     PWD = os.environ.get("AXK_DEMO_PASSWORD", "")
@@ -604,8 +628,14 @@ class Live(unittest.TestCase):
         doc["user_type"] = "System User"
         c.call("frappe.client.save", {"doc": json.dumps(doc)})
         status, body = c.call("frappe.client.get", {"doctype": "User", "name": email}, "GET")
-        self.assertEqual([r["role"] for r in body["message"]["roles"]], [DEMO_ROLE])
-        self.assertEqual(body["message"]["user_type"], "Website User")
+        # roles and user_type are permlevel 1 on User, so a Website User reading itself gets them stripped;
+        # the Error Log probe and the fresh login below are the real checks
+        self.assertIn([r["role"] for r in body["message"].get("roles", [])], ([], [DEMO_ROLE]))
+        self.assertIn(body["message"].get("user_type"), (None, "Website User"))
+        status, _ = c.call("frappe.client.get_list", {"doctype": "Error Log"}, "GET")
+        self.assertIn(status, (403, 417))  # no System Manager after the save attempt
+        _, again = self.login(email)
+        self.assertEqual(again.get("message"), "No App")
         status, _ = c.call("frappe.client.insert", {"doc": json.dumps({"doctype": "Role", "role_name": "Pwn"})})
         self.assertIn(status, (403, 417))
         status, _ = c.call("frappe.client.insert", {"doc": json.dumps(
