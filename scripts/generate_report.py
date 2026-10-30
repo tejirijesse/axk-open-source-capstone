@@ -32,6 +32,7 @@ def main():
         browser = p.chromium.launch()
         page = browser.new_page()
         page.goto(HTML_OUT.as_uri())
+        page.evaluate("document.fonts.ready")
         page.wait_for_timeout(500)
         page.pdf(path=str(PDF_OUT), format="A4", print_background=True, prefer_css_page_size=True)
         browser.close()
