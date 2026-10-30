@@ -1,38 +1,46 @@
-"""Endpoints behind the Cooperative, Inspector and Buyer screens.
+"""Endpoints behind the Cooperative, Inspector, Logistics, Port and Buyer screens.
 
 Every write signs a Stellar transaction with a server-held key, so access is narrow:
-- a signed-in System Manager, or
-- demo mode (site config `axk_demo_mode: 1`) AND a request from this machine (loopback).
+- a signed-in user with the System Manager or AXK Capstone Demo role, or
+- demo mode (site config `axk_demo_mode: 1`) AND a direct loopback request carrying no proxy header.
 Demo mode exists so the capstone can be demonstrated without sharing credentials; it never
 accepts a request from the network.
 """
 
-import frappe
 from zoneinfo import ZoneInfo
 
+import frappe
 from frappe.utils import cint, flt, get_datetime, get_system_timezone, getdate, nowdate
 
 from axk_capstone import chain
+from axk_capstone.setup import DEMO_ROLE
 
 DT = "AXK Chain Trade"
 LOOPBACK = {"127.0.0.1", "::1"}
+SIGN_LIMIT_PER_HOUR = 30
+SIGN_IN = "Sign in to use the trade screens."
+# Headers any proxy or tunnel (Cloudflare, nginx) adds. A request carrying one came from
+# outside this machine even though the TCP connection is local, and X-Forwarded-For is
+# client-controlled, so frappe.local.request_ip cannot be trusted here.
+PROXY_HEADERS = ("X-Forwarded-For", "CF-Connecting-IP", "CF-Ray", "Forwarded", "X-Real-IP", "True-Client-IP")
+
 COMMODITIES = ["Coffee (parchment)", "Maize (dry grain)", "Beans (dry)", "Irish Potato",
                "Rice (paddy)", "Cassava (dried chips)", "Sorghum", "Wheat"]
 GRADES = ["A", "B", "C"]
 PRICE_RWF_PER_KG = {"Coffee (parchment)": 3400, "Maize (dry grain)": 420, "Beans (dry)": 780,
                     "Irish Potato": 300, "Rice (paddy)": 560, "Cassava (dried chips)": 350,
                     "Sorghum": 450, "Wheat": 520}
-
-
-DEMO_ROLE = "AXK Capstone Demo"
-# Headers any proxy or tunnel (Cloudflare, nginx) adds. A request carrying one came from
-# outside this machine even though the TCP connection is local, and X-Forwarded-For is
-# client-controlled, so frappe.local.request_ip cannot be trusted here.
-PROXY_HEADERS = ("X-Forwarded-For", "CF-Connecting-IP", "CF-Ray", "Forwarded", "X-Real-IP", "True-Client-IP")
-SIGN_IN = "Sign in to use the trade screens."
+FIELDS = ["name", "lot_ref", "status", "commodity", "variety", "declared_grade", "quantity_kg", "origin",
+          "harvest_date", "cooperative_name", "inspected_grade", "inspected_quantity_kg", "moisture_pct",
+          "passed", "inspector_name", "buyer_name", "amount_rwf",
+          "carrier_name", "driver_name", "vehicle_plate", "seal_number", "destination_port", "waybill_ref",
+          "port_name", "container_id", "customs_ref", "seal_verified",
+          "registered_at", "inspected_at", "funded_at", "dispatched_at", "port_received_at", "settled_at",
+          "reject_reason", "modified"]
 
 
 def _direct_local_request():
+    """True only for a loopback connection that carries no proxy header."""
     req = getattr(frappe, "request", None)
     if req is None:
         return False
@@ -42,14 +50,14 @@ def _direct_local_request():
 
 
 def _guard():
+    """Allow a signed-in System Manager or demo-role user, or a direct loopback request in demo mode.
+
+    Raises PermissionError otherwise."""
     if frappe.session.user != "Guest" and ({"System Manager", DEMO_ROLE} & set(frappe.get_roles())):
         return
     if cint(frappe.conf.get("axk_demo_mode")) and _direct_local_request():
         return
     frappe.throw(SIGN_IN, frappe.PermissionError)
-
-
-SIGN_LIMIT_PER_HOUR = 30
 
 
 def _throttle():
@@ -65,6 +73,7 @@ def _throttle():
 
 
 def _fail(doc, e):
+    """Roll back, record the error on the lot (if saved) and surface it to the user."""
     frappe.db.rollback()
     if doc and doc.name and frappe.db.exists(DT, doc.name):
         frappe.db.set_value(DT, doc.name, "last_error", str(e)[:500])
@@ -81,6 +90,7 @@ def _iso(dt):
 
 
 def _row(d):
+    """Summary fields of a lot, as sent to the list screens."""
     return {
         "name": d.name, "lot_ref": d.lot_ref, "status": d.status, "commodity": d.commodity,
         "variety": d.variety, "declared_grade": d.declared_grade, "quantity_kg": d.quantity_kg,
@@ -101,17 +111,9 @@ def _row(d):
     }
 
 
-FIELDS = ["name", "lot_ref", "status", "commodity", "variety", "declared_grade", "quantity_kg", "origin",
-          "harvest_date", "cooperative_name", "inspected_grade", "inspected_quantity_kg", "moisture_pct",
-          "passed", "inspector_name", "buyer_name", "amount_rwf",
-          "carrier_name", "driver_name", "vehicle_plate", "seal_number", "destination_port", "waybill_ref",
-          "port_name", "container_id", "customs_ref", "seal_verified",
-          "registered_at", "inspected_at", "funded_at", "dispatched_at", "port_received_at", "settled_at",
-          "reject_reason", "modified"]
-
-
 @frappe.whitelist(allow_guest=True)
 def overview():
+    """All lots with status counts and the form option lists. Access: see module docstring."""
     _guard()
     rows = [_row(frappe._dict(r)) for r in frappe.get_all(DT, fields=FIELDS, order_by="modified desc")]
     counts = {}
@@ -124,6 +126,7 @@ def overview():
 
 @frappe.whitelist(allow_guest=True)
 def personas():
+    """Demo personas with their addresses and RWF balances (cooperative and buyer only)."""
     _guard()
     out = []
     for key in ("coop", "inspector", "logistics", "port", "buyer"):
@@ -142,6 +145,7 @@ def personas():
 
 @frappe.whitelist(allow_guest=True)
 def lot(name):
+    """Full detail of one lot, including records, digests, transaction hashes and the timeline."""
     _guard()
     d = frappe.get_doc(DT, name)
     steps = [
@@ -177,6 +181,7 @@ def lot(name):
 
 @frappe.whitelist(allow_guest=True, methods=["POST"])
 def register_lot(commodity, quantity_kg, declared_grade, origin, variety=None, harvest_date=None):
+    """Cooperative registers a lot and commits its digest on-chain. Raises on invalid input or chain failure."""
     _guard()
     _throttle()
     if commodity not in COMMODITIES:
@@ -210,6 +215,7 @@ def register_lot(commodity, quantity_kg, declared_grade, origin, variety=None, h
 
 @frappe.whitelist(allow_guest=True, methods=["POST"])
 def inspect_lot(name, passed, grade, quantity_kg, moisture_pct=None, notes=None, reject_reason=None):
+    """Inspector signs a pass or reject for a Registered lot. A rejection needs a reason from the list."""
     _guard()
     _throttle()
     doc = frappe.get_doc(DT, name)
@@ -234,6 +240,7 @@ def inspect_lot(name, passed, grade, quantity_kg, moisture_pct=None, notes=None,
 
 @frappe.whitelist(allow_guest=True, methods=["POST"])
 def fund_lot(name, amount_rwf):
+    """Buyer locks payment in escrow for an Approved lot."""
     _guard()
     _throttle()
     doc = frappe.get_doc(DT, name)
@@ -255,6 +262,7 @@ def fund_lot(name, amount_rwf):
 
 @frappe.whitelist(allow_guest=True, methods=["POST"])
 def dispatch_logistics(name, carrier_name=None, driver_name=None, vehicle_plate=None, seal_number=None, destination_port=None):
+    """Carrier takes custody of a Funded or Approved lot and anchors the waybill."""
     _guard()
     _throttle()
     doc = frappe.get_doc(DT, name)
@@ -271,6 +279,7 @@ def dispatch_logistics(name, carrier_name=None, driver_name=None, vehicle_plate=
 
 @frappe.whitelist(allow_guest=True, methods=["POST"])
 def receive_port(name, port_name=None, container_id=None, customs_ref=None, seal_number=None):
+    """Port gate-in for an In Transit lot; the seal must match the waybill."""
     _guard()
     _throttle()
     doc = frappe.get_doc(DT, name)
@@ -287,6 +296,7 @@ def receive_port(name, port_name=None, container_id=None, customs_ref=None, seal
 
 @frappe.whitelist(allow_guest=True, methods=["POST"])
 def confirm_delivery(name):
+    """Release escrow, pay members and attest the settlement. Resumable: completed steps are skipped on retry."""
     _guard()
     _throttle()
     doc = frappe.get_doc(DT, name)
@@ -305,6 +315,7 @@ def confirm_delivery(name):
 
 @frappe.whitelist(allow_guest=True, methods=["POST"])
 def verify_lot(name):
+    """Check on-chain that the stored records still match their committed digests."""
     _guard()
     doc = frappe.get_doc(DT, name)
     try:
@@ -315,6 +326,7 @@ def verify_lot(name):
 
 @frappe.whitelist(allow_guest=True, methods=["POST"])
 def top_up_buyer(amount_rwf=500000):
+    """Testnet only: top up the buyer's RWF balance (capped at 5,000,000). Returns refreshed personas."""
     _guard()
     _throttle()
     amount = min(flt(amount_rwf), 5_000_000)

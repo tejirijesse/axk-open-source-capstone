@@ -46,6 +46,7 @@ def search(q):
 
 
 def public_lot(ref):
+    """Public fields and timeline of one lot, or None if the reference is unknown."""
     rows = frappe.get_all(DT, filters={"lot_ref": ref}, fields=PUBLIC_FIELDS, limit=1)
     if not rows:
         return None
@@ -67,6 +68,7 @@ def public_lot(ref):
 
 
 def qr_svg(url):
+    """QR code for `url` as an inline SVG string."""
     import qrcode
     import qrcode.image.svg
 

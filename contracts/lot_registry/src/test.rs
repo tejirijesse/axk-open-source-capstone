@@ -23,7 +23,13 @@ fn setup() -> Fixture<'static> {
     let inspector = Address::generate(&env);
     let registry = LotRegistryClient::new(&env, &env.register(LotRegistry, (admin.clone(),)));
     registry.add_inspector(&inspector);
-    Fixture { env, registry, admin, coop, inspector }
+    Fixture {
+        env,
+        registry,
+        admin,
+        coop,
+        inspector,
+    }
 }
 
 fn bytes(env: &Env, n: u8) -> BytesN<32> {
@@ -33,11 +39,19 @@ fn bytes(env: &Env, n: u8) -> BytesN<32> {
 }
 
 fn register(f: &Fixture, n: u8) -> BytesN<32> {
-    f.registry.register_lot(&f.coop, &bytes(&f.env, n), &bytes(&f.env, 100 + n))
+    f.registry
+        .register_lot(&f.coop, &bytes(&f.env, n), &bytes(&f.env, 100 + n))
 }
 
 fn pass(f: &Fixture, id: &BytesN<32>) -> LotStatus {
-    f.registry.inspect(id, &f.inspector, &true, &symbol_short!("A"), &3_850, &bytes(&f.env, 200))
+    f.registry.inspect(
+        id,
+        &f.inspector,
+        &true,
+        &symbol_short!("A"),
+        &3_850,
+        &bytes(&f.env, 200),
+    )
 }
 
 #[test]
@@ -58,7 +72,9 @@ fn the_lot_id_is_bound_to_the_cooperative() {
     let f = setup();
     let stranger = Address::generate(&f.env);
     let real = register(&f, 1);
-    let squat = f.registry.register_lot(&stranger, &bytes(&f.env, 1), &bytes(&f.env, 101));
+    let squat = f
+        .registry
+        .register_lot(&stranger, &bytes(&f.env, 1), &bytes(&f.env, 101));
     assert_ne!(real, squat);
     assert_eq!(f.registry.get(&real).cooperative, f.coop);
     assert_eq!(f.registry.get(&squat).cooperative, stranger);
@@ -70,7 +86,8 @@ fn registration_is_write_once() {
     let f = setup();
     register(&f, 1);
     assert_eq!(
-        f.registry.try_register_lot(&f.coop, &bytes(&f.env, 1), &bytes(&f.env, 99)),
+        f.registry
+            .try_register_lot(&f.coop, &bytes(&f.env, 1), &bytes(&f.env, 99)),
         Err(Ok(Error::LotExists)),
     );
 }
@@ -79,7 +96,10 @@ fn registration_is_write_once() {
 fn registration_demands_the_cooperative_signature() {
     let f = setup();
     register(&f, 1);
-    assert_eq!(f.env.auths().first().map(|(a, _)| a.clone()), Some(f.coop.clone()));
+    assert_eq!(
+        f.env.auths().first().map(|(a, _)| a.clone()),
+        Some(f.coop.clone())
+    );
 }
 
 #[test]
@@ -99,7 +119,14 @@ fn a_passed_inspection_approves_the_lot() {
 fn a_failed_inspection_rejects_the_lot() {
     let f = setup();
     let id = register(&f, 1);
-    let status = f.registry.inspect(&id, &f.inspector, &false, &symbol_short!("C"), &3_850, &bytes(&f.env, 200));
+    let status = f.registry.inspect(
+        &id,
+        &f.inspector,
+        &false,
+        &symbol_short!("C"),
+        &3_850,
+        &bytes(&f.env, 200),
+    );
     assert_eq!(status, LotStatus::Rejected);
     assert_eq!(f.registry.approved_cooperative(&id), None);
 }
@@ -109,9 +136,23 @@ fn a_lot_is_inspected_once() {
     // Otherwise a failed lot could be re-inspected until someone passes it.
     let f = setup();
     let id = register(&f, 1);
-    f.registry.inspect(&id, &f.inspector, &false, &symbol_short!("C"), &3_850, &bytes(&f.env, 200));
+    f.registry.inspect(
+        &id,
+        &f.inspector,
+        &false,
+        &symbol_short!("C"),
+        &3_850,
+        &bytes(&f.env, 200),
+    );
     assert_eq!(
-        f.registry.try_inspect(&id, &f.inspector, &true, &symbol_short!("A"), &3_850, &bytes(&f.env, 201)),
+        f.registry.try_inspect(
+            &id,
+            &f.inspector,
+            &true,
+            &symbol_short!("A"),
+            &3_850,
+            &bytes(&f.env, 201)
+        ),
         Err(Ok(Error::AlreadyInspected)),
     );
     assert_eq!(f.registry.get(&id).status, LotStatus::Rejected);
@@ -123,7 +164,14 @@ fn only_an_authorised_inspector_can_inspect() {
     let id = register(&f, 1);
     let stranger = Address::generate(&f.env);
     assert_eq!(
-        f.registry.try_inspect(&id, &stranger, &true, &symbol_short!("A"), &3_850, &bytes(&f.env, 200)),
+        f.registry.try_inspect(
+            &id,
+            &stranger,
+            &true,
+            &symbol_short!("A"),
+            &3_850,
+            &bytes(&f.env, 200)
+        ),
         Err(Ok(Error::NotAnInspector)),
     );
     assert_eq!(f.registry.approved_cooperative(&id), None);
@@ -134,7 +182,10 @@ fn inspect_demands_the_inspectors_signature_specifically() {
     let f = setup();
     let id = register(&f, 1);
     pass(&f, &id);
-    assert_eq!(f.env.auths().first().map(|(a, _)| a.clone()), Some(f.inspector.clone()));
+    assert_eq!(
+        f.env.auths().first().map(|(a, _)| a.clone()),
+        Some(f.inspector.clone())
+    );
 }
 
 #[test]
@@ -145,7 +196,14 @@ fn a_cooperative_cannot_inspect_its_own_lot() {
     f.registry.add_inspector(&f.coop);
     let id = register(&f, 1);
     assert_eq!(
-        f.registry.try_inspect(&id, &f.coop, &true, &symbol_short!("A"), &3_850, &bytes(&f.env, 200)),
+        f.registry.try_inspect(
+            &id,
+            &f.coop,
+            &true,
+            &symbol_short!("A"),
+            &3_850,
+            &bytes(&f.env, 200)
+        ),
         Err(Ok(Error::InspectorOwnsLot)),
     );
 }
@@ -156,7 +214,14 @@ fn a_zero_or_negative_quantity_is_refused() {
     let id = register(&f, 1);
     for q in [0i128, -5] {
         assert_eq!(
-            f.registry.try_inspect(&id, &f.inspector, &true, &symbol_short!("A"), &q, &bytes(&f.env, 200)),
+            f.registry.try_inspect(
+                &id,
+                &f.inspector,
+                &true,
+                &symbol_short!("A"),
+                &q,
+                &bytes(&f.env, 200)
+            ),
             Err(Ok(Error::QuantityNotPositive)),
         );
     }
@@ -167,7 +232,14 @@ fn inspecting_an_unknown_lot_is_an_error_not_a_panic() {
     let f = setup();
     let unknown = bytes(&f.env, 9);
     assert_eq!(
-        f.registry.try_inspect(&unknown, &f.inspector, &true, &symbol_short!("A"), &1, &bytes(&f.env, 200)),
+        f.registry.try_inspect(
+            &unknown,
+            &f.inspector,
+            &true,
+            &symbol_short!("A"),
+            &1,
+            &bytes(&f.env, 200)
+        ),
         Err(Ok(Error::NoSuchLot)),
     );
     assert_eq!(f.registry.try_get(&unknown), Err(Ok(Error::NoSuchLot)));
@@ -182,7 +254,14 @@ fn a_removed_inspector_cannot_inspect_again() {
     f.registry.remove_inspector(&f.inspector);
     let second = register(&f, 2);
     assert_eq!(
-        f.registry.try_inspect(&second, &f.inspector, &true, &symbol_short!("A"), &1, &bytes(&f.env, 200)),
+        f.registry.try_inspect(
+            &second,
+            &f.inspector,
+            &true,
+            &symbol_short!("A"),
+            &1,
+            &bytes(&f.env, 200)
+        ),
         Err(Ok(Error::NotAnInspector)),
     );
     // The inspection signed while authorised still stands.
@@ -194,9 +273,15 @@ fn managing_inspectors_demands_the_admin_signature() {
     let f = setup();
     let newcomer = Address::generate(&f.env);
     f.registry.add_inspector(&newcomer);
-    assert_eq!(f.env.auths().first().map(|(a, _)| a.clone()), Some(f.admin.clone()));
+    assert_eq!(
+        f.env.auths().first().map(|(a, _)| a.clone()),
+        Some(f.admin.clone())
+    );
     f.registry.remove_inspector(&newcomer);
-    assert_eq!(f.env.auths().first().map(|(a, _)| a.clone()), Some(f.admin.clone()));
+    assert_eq!(
+        f.env.auths().first().map(|(a, _)| a.clone()),
+        Some(f.admin.clone())
+    );
 }
 
 #[test]
@@ -206,9 +291,14 @@ fn without_signatures_nothing_is_written() {
     let coop = Address::generate(&env);
     let stranger = Address::generate(&env);
     let registry = LotRegistryClient::new(&env, &env.register(LotRegistry, (admin,)));
-    assert!(registry.try_add_inspector(&stranger).is_err(), "a stranger appointed an inspector");
     assert!(
-        registry.try_register_lot(&coop, &bytes(&env, 1), &bytes(&env, 2)).is_err(),
+        registry.try_add_inspector(&stranger).is_err(),
+        "a stranger appointed an inspector"
+    );
+    assert!(
+        registry
+            .try_register_lot(&coop, &bytes(&env, 1), &bytes(&env, 2))
+            .is_err(),
         "a lot was registered without the cooperative's signature",
     );
 }
@@ -235,5 +325,8 @@ fn inspection_is_published_as_an_event() {
     pass(&f, &id);
     let last = f.env.events().all().last().unwrap();
     assert_eq!(last.0, f.registry.address);
-    assert_eq!(last.1, (symbol_short!("lot"), symbol_short!("inspect")).into_val(&f.env));
+    assert_eq!(
+        last.1,
+        (symbol_short!("lot"), symbol_short!("inspect")).into_val(&f.env)
+    );
 }

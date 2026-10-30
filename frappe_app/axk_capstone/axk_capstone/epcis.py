@@ -27,10 +27,12 @@ def _slug(text):
 
 
 def lot_uri(lot_ref):
+    """EPC class URI for a lot."""
     return "urn:axk:lot:" + _slug(lot_ref)
 
 
 def location_uri(name):
+    """Location URI for a place name."""
     return "urn:axk:loc:" + _slug(name)
 
 
@@ -159,7 +161,9 @@ def _guest_get(fn):
 
 @_guest_get
 def lot_events(ref=None, download=0):
-    """Public EPCIS export: /api/method/axk_capstone.epcis.lot_events?ref=<lot ref>[&download=1]"""
+    """Public EPCIS export: /api/method/axk_capstone.epcis.lot_events?ref=<lot ref>[&download=1].
+
+    No login. Raises DoesNotExistError for an unknown lot."""
     import json
 
     import frappe

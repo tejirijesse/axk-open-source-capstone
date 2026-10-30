@@ -43,8 +43,8 @@ others.
 
 ## Application controls
 
-- **Who may sign.** Every write endpoint calls `_guard()`: a signed-in System Manager, or demo mode
-  (`axk_demo_mode: 1` in site config) **and** a loopback request. Tested: `127.0.0.1` allowed;
+- **Who may sign.** Every write endpoint calls `_guard()`: a signed-in user with the System Manager or AXK Capstone Demo role, or demo mode
+  (`axk_demo_mode: 1` in site config) **and** a direct loopback request carrying no proxy header. Tested: `127.0.0.1` allowed;
   `192.168.1.40` and `10.0.0.5` refused; loopback with demo mode off refused.
 - **No command injection.** `chain.py` runs `stellar-cli` with argument lists and no shell. User input
   never reaches the chain as text: commodity and grade come from fixed lists, quantities are numbers,

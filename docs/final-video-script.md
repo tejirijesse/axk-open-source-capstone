@@ -17,7 +17,7 @@ make check-env             # terminal 2: must end with "Environment ready."
 Open these tabs:
 1. `http://localhost:8000/trade`
 2. GitHub repo
-3. `docs/AXK_Technical_Report.pdf`
+3. `docs/AXK-Capstone-Technical-Report.pdf`
 4. `docs/testing/compatibility-local.md` on GitHub
 5. `frappe_app/axk_capstone/axk_capstone/ledger/` on GitHub
 
