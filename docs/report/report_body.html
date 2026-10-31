@@ -27,7 +27,7 @@
         <tr><td><strong>Logistics, seal, port gate-in</strong> (FR)</td><td><span class="badge">Delivered, extended</span></td><td>Waybill and port receipt attested; arriving seal compared with the waybill ("Tamper Alert" on mismatch).</td></tr>
         <tr><td><strong>Settlement and member split</strong> (FR)</td><td><span class="badge">Delivered on testnet</span></td><td><code>contracts/splitter</code>, 12 tests; a Stellar test asset stands in for RWF.</td></tr>
         <tr><td><strong>Public trace and explorer</strong> (FR)</td><td><span class="badge">Delivered, extended</span></td><td><code>/trace</code> with QR, no login and no personal data; GS1 EPCIS 2.0 export; <code>/chain</code> live event reader.</td></tr>
-        <tr><td><strong>Security, authentication</strong> (NFR)</td><td><span class="badge">Delivered</span></td><td>14 contract guarantees, each pinned by a test; hosted site needs a login with a reviewer role; 30 transactions per user per hour.</td></tr>
+        <tr><td><strong>Security, authentication</strong> (NFR)</td><td><span class="badge">Delivered</span></td><td>14 contract guarantees, each pinned by a test; hosted site needs a login (one-click demo account per role); 30 transactions per user per hour.</td></tr>
         <tr><td><strong>Performance, mobile, low bandwidth</strong> (NFR)</td><td><span class="badge">Delivered</span></td><td>3 browser engines x 3 screen sizes plus a slow-3G phone: 80/80 page loads (section 05).</td></tr>
         <tr><td><strong>Mobile-money payout</strong></td><td><span class="badge" style="color:#a15c07">Not implemented</span></td><td>Designed only: <code>docs/design/set-3-mojaloop-payouts.md</code>; SEP-24 anchor on the roadmap (SET-2).</td></tr>
         <tr><td><strong>Pilot with 30 to 50 users</strong></td><td><span class="badge" style="color:#a15c07">Not yet run</span></td><td>Waiting for ethics approval; questionnaire, consent form and interview guide are ready.</td></tr>
@@ -51,7 +51,7 @@
     <h3 class="subsec-title">3.1&nbsp; Data handling and controls</h3>
     <ul>
       <li><strong>On-chain versus off-chain:</strong> trade documents stay in MariaDB; only their SHA-256 digests, statuses and account addresses go on-chain, so the ledger proves a record without revealing it.</li>
-      <li><strong>Access guard:</strong> <code>_guard()</code> allows a signed-in user with the AXK Capstone Demo role (or System Manager). Demo mode only works for direct loopback requests; anything through a proxy is refused. The hosted site runs with demo mode off.</li>
+      <li><strong>Access guard:</strong> <code>_guard()</code> allows a signed-in user with the AXK Capstone Demo role (or System Manager). Demo mode only works for direct loopback requests; anything through a proxy is refused. The hosted site runs with demo mode off; its sign-in page offers one demo account per role, which lands on that role's screen and cannot change the shared password, account or sharing.</li>
       <li><strong>Throttle:</strong> <code>_throttle()</code> caps 30 signed transactions per user per hour, keyed by user, so a shared reviewer login cannot spam testnet.</li>
       <li><strong>Keys:</strong> one Stellar identity per role, held on the server under the service user (directory 700, files 600, outside git). The browser never holds a key.</li>
       <li><strong>Privacy:</strong> <code>verify.py</code> exposes a fixed list of fields with no personal data to the public trace page.</li>
@@ -80,30 +80,32 @@
   <div class="page-header"><span class="mark"><span class="bars"><i></i><i></i></span>AXK Network</span><span>Capstone Technical Report · ALU BSE 2026</span></div>
   <div class="page-content">
     <h2 class="sec-title"><span class="n">04</span>Testing</h2>
-    <p>Five strategies, chosen by risk: contract unit tests, because money logic cannot be patched after deployment; application unit tests with <code>stellar-cli</code> replaced by a fake, so they run with no network; end-to-end lifecycle and failure-mode tests; standards validation; and cross-browser and device runs. Counts are from runs on 30 October 2026.</p>
+    <p>Five strategies, chosen by risk: contract unit tests, because money logic cannot be patched after deployment; application unit tests with <code>stellar-cli</code> replaced by a fake, so they run with no network; end-to-end lifecycle and failure-mode tests; standards validation; and cross-browser and device runs. Counts are from runs on 31 October 2026.</p>
     <table class="data-table">
       <thead><tr><th style="width:22%">Suite</th><th style="width:8%">Tests</th><th style="width:46%">What it checks</th><th style="width:24%">Command and result</th></tr></thead>
       <tbody>
         <tr><td><strong>Smart contracts</strong><br><code>contracts/*/src/test.rs</code></td><td>65</td><td>Registry 18, escrow 27, splitter 12, attestation 8: write-once records, allow-listed inspectors, inspection gate, fixed payee, deadline refund, lossless split, typed errors instead of panics.</td><td><code>make test-contracts</code><br><strong>65 passed</strong></td></tr>
-        <tr><td><strong>Ledger object model</strong><br><code>scripts/test_ledger.py</code></td><td>21</td><td>Record digests match the original format, error tables, state machine refusals, resumable settlement after a failure, seal check.</td><td><code>make test-ledger</code><br><strong>21 passed</strong></td></tr>
+        <tr><td><strong>Ledger object model</strong><br><code>scripts/test_ledger.py</code></td><td>22</td><td>Record digests match the original format, error tables, state machine refusals, resumable settlement, seal check, buyer balance check.</td><td><code>make test-ledger</code><br><strong>22 passed</strong></td></tr>
+        <tr><td><strong>Screens and logins</strong><br><code>test_custody</code>, <code>test_demo_users</code></td><td>58</td><td>Custody Strip fills only from real 64-hex hashes; demo accounts, access blocks and the open-redirect check; lot transaction fields.</td><td><code>make test-custody test-demo</code><br><strong>58 passed</strong> (5 live-only skipped)</td></tr>
         <tr><td><strong>End to end</strong><br><code>scripts/test_trade.py</code></td><td>7</td><td>Full lifecycle, inspection rejection, seal tampering, invalid transitions, unknown lot, web routes and trace page.</td><td><code>make test-python</code><br><strong>7 passed</strong></td></tr>
         <tr><td><strong>EPCIS export</strong><br><code>scripts/test_epcis.py</code></td><td>8</td><td>GS1 EPCIS 2.0 structure, official JSON schema, no private fields.</td><td><code>make test-epcis</code><br><strong>8 passed</strong></td></tr>
         <tr><td><strong>ODK offline</strong><br><code>scripts/test_odk.py</code></td><td>9</td><td>Form, importer and ODK Central sync; imports once, skips rejected submissions.</td><td><code>make test-odk</code><br><strong>8 passed, 1 skipped</strong> (live)</td></tr>
         <tr><td><strong>Compatibility</strong><br><code>scripts/test_compat.py</code></td><td>80 loads</td><td>8 screens in Chromium, Firefox and WebKit at phone, tablet and desktop sizes, plus a slow phone: status, render, JS errors, sideways overflow.</td><td>Playwright<br><strong>80/80, 0 problems</strong></td></tr>
       </tbody>
     </table>
-    <p><strong>Total: 110 automated tests and 80 page loads.</strong> A full trade was also run on testnet after each major change (latest AXK-LIVE-CP-20261030-0011), with all four records matching the chain.</p>
+    <p><strong>Total: 169 automated tests and 80 page loads.</strong> A full trade was also run on testnet after each major change (latest AXK-LIVE-CP-20261031-0015, after the screen redesign), with all four records matching the chain.</p>
     <h3 class="subsec-title">4.1&nbsp; Failure paths first</h3>
     <pre><code>#[test] fn a_cooperative_cannot_inspect_its_own_lot()          // Error::NotAnInspector
 #[test] fn an_uninspected_lot_cannot_be_funded()              // Error::LotNotApproved
 #[test] fn an_unknown_trade_id_is_an_error_not_a_panic()       // escrow and splitter</code></pre>
     <h3 class="subsec-title">4.2&nbsp; Improvements made because of test results</h3>
     <ul>
-      <li><strong>Slow phones:</strong> the first page took 57.7 s on the low-end profile because every screen loaded 3.9 MB of framework bundles it never used. A lean page template now ships only each screen's own files (about 2.6 KB of HTML); the slowest low-end load fell to 2.7 s.</li>
+      <li><strong>Slow phones:</strong> the first page took 57.7 s on the low-end profile because every screen loaded 3.9 MB of framework bundles it never used. A lean page template now ships only each screen's own files (about 2.6 KB of HTML); the slowest low-end load fell to 2.7 s (3.8 s with the redesigned screens' two fonts).</li>
       <li><strong>Role screens:</strong> Logistics and Port took 66 s to open because balances were read for accounts that hold no token. Only token holders are read now, with a 2-minute cache: 1.4 s.</li>
       <li><strong>Live explorer:</strong> broke when the Stellar RPC changed its event format; it now reads events over plain JSON-RPC and keeps only the fields it uses.</li>
-      <li><strong>Integrity:</strong> a failed chain call once left a placeholder hash; a failed transaction now fails the step. The simulation server no longer serves repository files for unknown URLs.</li>
-      <li><strong>Structure:</strong> the blockchain module was one procedural file; it became the ledger package (section 06), verified by 21 unit tests and a full testnet trade.</li>
+      <li><strong>Misleading error:</strong> a buyer short of test RWF was told the lot "has not passed inspection", because the token's insufficient-balance error is also #10. The workflow now checks the balance first and says how much the buyer holds.</li>
+      <li><strong>Integrity:</strong> a failed chain call once left a placeholder hash; a failed transaction now fails the step.</li>
+      <li><strong>Structure:</strong> the blockchain module was one procedural file; it became the ledger package (section 06), verified by 22 unit tests and full testnet trades.</li>
     </ul>
   </div>
   <div class="page-footer"><span>Oghenetejiri Jesse · African Leadership University</span><span>3 / 5</span></div>

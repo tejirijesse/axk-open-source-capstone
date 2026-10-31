@@ -3,90 +3,90 @@
   "target": "http://localhost:8000",
   "host_os": "Darwin 24.5.0 (arm64)",
   "cpu_count": 10,
-  "run_at": "2026-10-30 15:04 EAT"
+  "run_at": "2026-10-31 12:50 EAT"
  },
  "latency": {
   "GET /trade (page)": {
-   "median_ms": 72.6,
-   "p95_ms": 77.9,
-   "max_ms": 78.5,
+   "median_ms": 38.6,
+   "p95_ms": 39.6,
+   "max_ms": 40.2,
    "n": 20
   },
   "GET /trace/lot (public page with QR)": {
-   "median_ms": 84.1,
-   "p95_ms": 87.4,
-   "max_ms": 88.8,
+   "median_ms": 50.7,
+   "p95_ms": 53.0,
+   "max_ms": 53.1,
    "n": 20
   },
   "API overview (all lots)": {
-   "median_ms": 3.3,
-   "p95_ms": 4.1,
-   "max_ms": 4.3,
-   "n": 20
-  },
-  "API lot detail": {
-   "median_ms": 4.0,
-   "p95_ms": 4.5,
-   "max_ms": 4.5,
-   "n": 20
-  },
-  "API personas (balances, cached)": {
-   "median_ms": 3.0,
+   "median_ms": 3.8,
    "p95_ms": 4.1,
    "max_ms": 4.2,
    "n": 20
   },
+  "API lot detail": {
+   "median_ms": 3.7,
+   "p95_ms": 3.9,
+   "max_ms": 4.1,
+   "n": 20
+  },
+  "API personas (balances, cached)": {
+   "median_ms": 3.3,
+   "p95_ms": 5.5,
+   "max_ms": 7.7,
+   "n": 20
+  },
   "EPCIS export": {
-   "median_ms": 4.0,
-   "p95_ms": 4.6,
-   "max_ms": 5.0,
+   "median_ms": 3.3,
+   "p95_ms": 3.6,
+   "max_ms": 3.7,
    "n": 20
   }
  },
  "processes": {
   "web (gunicorn/werkzeug)": {
    "processes": 2,
-   "rss_mb": 105.2,
-   "cpu_pct": 22.7
+   "rss_mb": 143.6,
+   "cpu_pct": 5.7
   },
   "workers": {
    "processes": 1,
-   "rss_mb": 6.7,
+   "rss_mb": 15.7,
    "cpu_pct": 0.0
   },
   "redis": {
    "processes": 2,
-   "rss_mb": 7.3,
-   "cpu_pct": 0.9
+   "rss_mb": 12.1,
+   "cpu_pct": 1.8
   },
   "socketio": {
    "processes": 1,
-   "rss_mb": 11.1,
+   "rss_mb": 52.0,
    "cpu_pct": 0.0
   },
   "mariadb": {
    "processes": 1,
-   "rss_mb": 41.3,
-   "cpu_pct": 1.4
+   "rss_mb": 39.7,
+   "cpu_pct": 3.4
   }
  },
  "sizes": {
   "frontend_assets": {
    "public/js/trade.js": {
-    "kb": 62.3,
-    "gzip_kb": 15.7
+    "kb": 71.3,
+    "gzip_kb": 20.1
    },
    "public/js/chain.js": {
-    "kb": 27.7,
-    "gzip_kb": 8.4
+    "kb": 33.3,
+    "gzip_kb": 10.3
    },
    "public/css/axk.css": {
-    "kb": 19.2,
-    "gzip_kb": 4.3
+    "kb": 41.2,
+    "gzip_kb": 8.5
    },
    "public/css/chain.css": {
-    "kb": 9.3,
-    "gzip_kb": 2.5
+    "kb": 9.1,
+    "gzip_kb": 2.2
    }
   },
   "contract_wasm_kb": {
@@ -97,16 +97,16 @@
   }
  },
  "trade_on_testnet": {
-  "lot_ref": "AXK-LIVE-CP-20261030-0011",
+  "lot_ref": "AXK-LIVE-CP-20261031-0015",
   "seconds": {
-   "register": 13.2,
-   "inspect": 9.5,
-   "fund escrow": 15.6,
-   "dispatch": 22.6,
-   "port gate-in": 17.3,
-   "settle (4 transactions)": 38.7,
-   "verify against chain": 9.8
+   "register": 6.8,
+   "inspect": 10.5,
+   "fund escrow": 9.0,
+   "dispatch": 10.6,
+   "port gate-in": 9.5,
+   "settle (4 transactions)": 35.4,
+   "verify against chain": 5.7
   },
-  "total_s": 126.7
+  "total_s": 87.5
  }
 }

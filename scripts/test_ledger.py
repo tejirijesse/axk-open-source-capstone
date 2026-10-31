@@ -34,7 +34,7 @@ class FakeRunner(CommandRunner):
     def __init__(self):
         self.calls = []
         self.fail_with = None          # (function name, stderr) to simulate a refused transaction
-        self.outputs = {"register_lot": f'"{LOT_ID}"', "matches": "true", "balance": '"25000000000"'}
+        self.outputs = {"register_lot": f'"{LOT_ID}"', "matches": "true", "balance": '"25000000000000"'}
 
     def run(self, args, timeout):
         self.calls.append(args)
@@ -67,7 +67,8 @@ def new_trade():
 def make_workflow(runner, saved=None):
     net = Network(runner)
     contracts = {"registry": LotRegistry(net, "CREG"), "escrow": Escrow(net, "CESC"),
-                 "splitter": Splitter(net, "CSPL"), "attestation": Attestation(net, "CATT")}
+                 "splitter": Splitter(net, "CSPL"), "attestation": Attestation(net, "CATT"),
+                 "token": Token(net, "CTOK")}
     personas = Personas(IDENTITIES, lambda role: net.address(IDENTITIES[role]["identity"]))
     return TradeWorkflow(contracts, personas, token_id="CTOK", clock=lambda: NOW,
                          checkpoint=(saved.append if saved is not None else (lambda t: None)),
@@ -139,7 +140,7 @@ class Contracts(unittest.TestCase):
     def test_reads_are_not_submitted(self):
         self.assertTrue(Attestation(self.net, "CATT").matches("axk-verifier", "k", "d"))
         self.assertIn("--send=no", self.runner.calls[-1])
-        self.assertEqual(Token(self.net, "CTOK").balance("axk-verifier", "GBUYER"), 25000000000)
+        self.assertEqual(Token(self.net, "CTOK").balance("axk-verifier", "GBUYER"), 25000000000000)
 
     def test_escrow_funding_is_co_signed_and_has_no_payee(self):
         Escrow(self.net, "CESC").create("axk-verifier", "axk-buyer", "t", LOT_ID, "CTOK", 10, 99)
@@ -174,7 +175,7 @@ class Workflow(unittest.TestCase):
         run_to_settlement(wf, t)
         self.assertEqual(t.status, "Settled")
         self.assertEqual(runner.functions(),
-                         ["register_lot", "inspect", "create", "attest", "attest", "release", "configure",
+                         ["register_lot", "inspect", "balance", "create", "attest", "attest", "release", "configure",
                           "distribute", "attest"])
         for field in ("register_tx", "inspect_tx", "fund_tx", "dispatch_tx", "port_tx", "release_tx",
                       "split_tx", "distribute_tx", "attest_tx"):
@@ -225,6 +226,17 @@ class Workflow(unittest.TestCase):
             wf.receive_at_port(t, "KLP", "C", "X", arriving_seal="RW-SEAL-9")
         self.assertEqual(t.status, "In Transit")
         self.assertEqual(len(runner.calls), before)
+
+    def test_buyer_short_of_funds_is_told_so_before_signing(self):
+        runner, t = FakeRunner(), new_trade()
+        wf = make_workflow(runner)
+        wf.register(t)
+        wf.inspect(t, True, "A", 1.0, 11.0, "")
+        runner.outputs["balance"] = '"2000010000000"'          # 200,001 RWF
+        with self.assertRaisesRegex(ChainError, "holds 200,001 RWF, less than the 250,000 RWF"):
+            wf.fund(t, 250000, "t")
+        self.assertNotIn("create", runner.functions())
+        self.assertEqual(t.status, "Approved")
 
     def test_refused_transaction_leaves_trade_unchanged(self):
         runner, t = FakeRunner(), new_trade()

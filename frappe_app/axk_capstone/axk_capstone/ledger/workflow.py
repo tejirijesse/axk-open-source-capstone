@@ -54,6 +54,7 @@ class TradeWorkflow:
         self.escrow = contracts["escrow"]
         self.splitter = contracts["splitter"]
         self.attestation = contracts["attestation"]
+        self.token = contracts.get("token")  # optional: checks the buyer's balance before funding
         self.personas = personas
         self.token_id = token_id
         self.clock = clock                  # returns the current (naive, site-local) datetime
@@ -113,6 +114,13 @@ class TradeWorkflow:
         self._require("fund", trade)
         trade.buyer_name = self.personas.name("buyer")
         trade.buyer_account = self.personas.address("buyer")
+        if self.token:
+            # The token contract's "insufficient balance" is also error #10, which would otherwise be read
+            # as the escrow's #10 ("lot has not passed inspection"), so check before signing.
+            held = self.token.balance(self._sign("verifier"), trade.buyer_account)
+            if held < self._units(amount_rwf):
+                raise ChainError(f"The buyer holds {held / self.decimals:,.0f} RWF, less than the "
+                                 f"{amount_rwf:,.0f} RWF to lock in escrow")
         trade.trade_id = trade_id_seed
         deadline = self.clock() + timedelta(days=self.escrow_term_days)
         trade.fund_tx = self.escrow.create(

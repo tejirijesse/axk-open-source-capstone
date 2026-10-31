@@ -13,8 +13,9 @@ contracts release payment, split it between members and write an attestation tha
 - **Repository:** https://github.com/tejirijesse/axk-open-source-capstone
 - **Open source:** MIT licensed and open to contributions — see [CONTRIBUTING.md](CONTRIBUTING.md) and the
   step-by-step [ROADMAP.md](ROADMAP.md) (starter to advanced items for every stage of the trade).
-- **Live system:** https://capstone.axk.org — the full stack on Stellar testnet. Trade screens need a login
-  (reviewer credentials are given with the submission); the public trace page `/trace/lot?ref=<lot>` is open.
+- **Live system:** https://capstone.axk.org — the full stack on Stellar testnet. The sign-in page lists one demo
+  account per role (cooperative, inspector, logistics, port, buyer, supervisor): click a row and the email and
+  password fill in, then **Sign in** opens that role's screen. The public trace page `/trace` needs no account.
   How it is hosted, restarted and checked: [docs/handover.md](docs/handover.md).
 - **Technical report (PDF, 5 pages):** [docs/AXK-Capstone-Technical-Report.pdf](docs/AXK-Capstone-Technical-Report.pdf)
   (scope, functionality, testing and results, performance and compatibility, code quality).
@@ -246,7 +247,8 @@ make test             # contracts + ledger + EPCIS + ODK unit tests, then end-to
 | Suite | Type | Tests | Command | Needs |
 |---|---|---|---|---|
 | Smart contracts | Unit | 65 | `make test-contracts` | Rust |
-| Ledger object model | Unit (stellar-cli replaced by a fake runner) | 21 | `make test-ledger` | Python |
+| Ledger object model | Unit (stellar-cli replaced by a fake runner) | 22 | `make test-ledger` | Python |
+| Custody Strip and demo logins | Unit: strip state from real hashes only, demo accounts, access blocks, open-redirect check, lot tx fields | 58 | `make test-custody test-demo` | Python |
 | GS1 EPCIS export | Unit + validation against the official GS1 JSON schema | 8 | `make test-epcis` | Python (`jsonschema` for schema checks) |
 | ODK offline inspection | Unit + live import on testnet | 9 | `make test-odk` | Python |
 | End-to-end trade | Integration and failure modes | 7 | `make test-python` | Server on :8000 |
@@ -278,10 +280,11 @@ Results from the latest runs: [docs/testing/](docs/testing/) (compatibility tabl
 | **Attestation** | 8 | Immutable digests, ledger anchor, role-based attester gating | `cargo test -p axk-attestation` |
 | **End-to-End Integration** | 7 | Full lifecycle, seal tampering, invalid transitions, route rendering (against the server on :8000) | `python3 scripts/test_trade.py` |
 | **Stellar Testnet Demo** | 10 steps | Live on-chain deployment, Friendbot funding, live tx hashes | `make demo` |
-| **Ledger object model** | 21 | Records, contract clients, workflow state machine, resumable settlement (no server) | `make test-ledger` |
+| **Ledger object model** | 22 | Records, contract clients, workflow state machine, resumable settlement, balance check (no server) | `make test-ledger` |
+| **Custody Strip and demo logins** | 58 | Strip state (15), demo accounts and access blocks (40; `AXK_DEMO_LIVE=1` adds the live suite), lot tx fields (3) | `make test-custody test-demo` |
 | **EPCIS export** | 8 | GS1 EPCIS 2.0 structure, schema validation, no private fields exported (no server) | `make test-epcis` |
 | **ODK offline** | 9 (1 skipped) | Form, importer and ODK Central sync; the live-signing test needs `AXK_ODK_LIVE=1` (no server) | `make test-odk` |
-| **Full Combined Suite** | **110 tests** | 65 contract + 21 ledger + 8 EPCIS + 9 ODK + 7 end-to-end | `make test` |
+| **Full Combined Suite** | **169 tests** | 65 contract + 22 ledger + 58 screens and logins + 8 EPCIS + 9 ODK + 7 end-to-end | `make test` |
 
 The end-to-end runs and the exact contract error codes observed on-chain are recorded in
 [docs/deployments.md](docs/deployments.md).

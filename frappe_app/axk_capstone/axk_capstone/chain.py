@@ -76,7 +76,8 @@ def _workflow():
     c = conf()
     net = _network(c)
     contracts = {"registry": LotRegistry(net, c["registry"]), "escrow": Escrow(net, c["escrow"]),
-                 "splitter": Splitter(net, c["splitter"]), "attestation": Attestation(net, c["attestation"])}
+                 "splitter": Splitter(net, c["splitter"]), "attestation": Attestation(net, c["attestation"]),
+                 "token": Token(net, c["token"])}
     return TradeWorkflow(contracts, Personas(PERSONAS, address), token_id=c["token"], clock=now_datetime,
                          checkpoint=_checkpoint, split_bps=SPLIT_BPS, decimals=DECIMALS,
                          escrow_term_days=ESCROW_TERM_DAYS)
