@@ -18,9 +18,12 @@ from a QR code.
 
 | | |
 |---|---|
-| **Live system** | https://capstone.axk.org (full stack on Stellar testnet) |
-| **Demo video** | https://youtu.be/MrSXiJG_MAU |
-| **Technical report** | [docs/AXK-Capstone-Technical-Report.pdf](docs/AXK-Capstone-Technical-Report.pdf) (5 pages) |
+| **Live system** | https://capstone.axk.org (full stack on Stellar testnet, one-click demo logins) |
+| **Demo video (1080p)** | [docs/demo/axk-capstone-demo.mp4](docs/demo/axk-capstone-demo.mp4) (watch in repo / download, 3:34) • [YouTube mirror](https://youtu.be/MrSXiJG_MAU) |
+| **Technical report** | [docs/AXK-Capstone-Technical-Report.pdf](docs/AXK-Capstone-Technical-Report.pdf) (5 pages, PDF) • [HTML online report](docs/technical-report.html) |
+| **Submission archive** | [TJ's capstone.zip (Google Drive)](https://drive.google.com/file/d/1q7GMFwB5EmQyrwfB6LSTES91j8XYVlfK/view?usp=sharing) (full bundle: code, report & video) |
+| **Verified live lot** | [AXK-LIVE-CP-20261031-0005](https://capstone.axk.org/trace/lot?ref=AXK-LIVE-CP-20261031-0005) (all 9 custody steps settled on Stellar) |
+| **Chain explorer** | https://capstone.axk.org/chain (live token flow across all lots) |
 | **Try without installing** | https://axk-open-source-capstone.vercel.app (offline simulation, nothing on-chain) |
 | **Source** | https://github.com/tejirijesse/axk-open-source-capstone (MIT) |
 
@@ -339,6 +342,10 @@ then `bench --site <site> migrate && bench build`.
 
 | Topic | Document |
 |---|---|
+| Technical report (PDF, 5 pages) | [docs/AXK-Capstone-Technical-Report.pdf](docs/AXK-Capstone-Technical-Report.pdf) |
+| Technical report (HTML interactive view) | [docs/technical-report.html](docs/technical-report.html) |
+| Demo video walkthrough (1080p MP4) | [docs/demo/axk-capstone-demo.mp4](docs/demo/axk-capstone-demo.mp4) |
+| Demo video script and narrative | [docs/demo-video-script.md](docs/demo-video-script.md) |
 | System schematic, sequences, state machines, data model | [docs/architecture.md](docs/architecture.md) |
 | Roles, 14 contract guarantees, application controls, known limits | [docs/security.md](docs/security.md) |
 | Contract reference and design rationale | [contracts/README.md](contracts/README.md) |
@@ -373,4 +380,4 @@ demo script and the explorer were written for this capstone.
 
 ## License
 
-MIT. See [LICENSE](LICENSE).
+MIT. Copyright (c) 2026 AFRIKABAL Inc. See [LICENSE](LICENSE).

@@ -20,7 +20,7 @@ Version 1, 2026-10-30. This is the bar every screen is built and reviewed agains
 
 Every lot carries a **Custody Strip**: nine notches, one for each on-chain step in `trade_api.py:151`. A notch is filled **only** when that step has a transaction hash, and every filled notch is a link to its transaction on stellar.expert. The strip appears wherever a lot appears: a micro strip in table rows, a labelled strip in the lot header, a vertical timeline on the public trace page, and a live specimen on the login panel. Green in this product means *proven on-chain*. Green is never used decoratively.
 
-The shell is a **forest room**: a full-bleed deep-green frame (`#0c3424`, the report's colour) holds the rail and top bar, and the work sits on an inset paper sheet. The colour comes from the frame's area, not from saturated accents. This is the structure Joe has already approved on his own products (REMIS shell, AXK webapp Rev 3), carried over in the report's palette.
+The shell is a **forest room**: a full-bleed deep-green frame (`#0c3424`, the report's colour) holds the rail and top bar, and the work sits on an inset paper sheet. The colour comes from the frame's area, not from saturated accents. This structure carries over the report's palette into an operational enterprise dashboard.
 
 ### Directions considered
 
@@ -189,7 +189,7 @@ Use inline SVG from Lucide (ISC licence): 16px in UI, 14px in tags, `stroke-widt
 
 ```
 +--------------------------------------------------------------+  frame #0c3424, full bleed
-| [AX] AXK Trade        Stellar testnet (live dot)   (JS) Joe v|  top bar 56px, on frame
+| [AX] AXK Trade        Stellar testnet (live dot)   (TJ) Tejiri v|  top bar 56px, on frame
 +-----------+--------------------------------------------------+
 | ACTING AS |  +--------------------------------------------+  |
 | [KT] Koperative...   |  sheet: --paper, r16, inset          |  |
@@ -488,7 +488,7 @@ It is currently three long sections and must become **one viewport with three ta
 
 ## 13. References (what was taken)
 
-- **Joe's REMIS shell / AXK webapp Rev 3**: the frame + rail + inset sheet structure, with colour bought by area. Joe has approved this structure twice, so it is carried over as-is.
+- **AXK Network Design System**: the frame + rail + inset sheet structure, with colour bought by area, carried over from AXK's production web standards.
 - **Mercury (dashboard)**: restraint. One accent, money set large in tabular figures, and hairline tables over cards.
 - **Stripe dashboard**: the docket pattern (list + detail side panel), and status tags that stay neutral for in-flight states.
 - **Linear**: the rail density (36px items, mono counts without bubbles), the outer focus ring and settle-not-bounce motion.
