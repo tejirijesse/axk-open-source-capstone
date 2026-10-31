@@ -1,45 +1,51 @@
-{% macro pill(s) -%}
-{%- set m = {"Registered":["registered","○","Awaiting inspection"],"Approved":["approved","✓","Inspected · passed"],"Rejected":["rejected","✕","Inspected · rejected"],"Funded":["funded","◷","In escrow"],"In Transit":["in-transit","🚚","In transit"],"At Port":["at-port","⚓","At port / terminal"],"Settled":["settled","●","Settled"],"Refunded":["refunded","↩","Refunded"]} -%}
-{%- set v = m.get(s, ["registered","○",s]) -%}
-<span class="xt-pill {{ v[0] }}"><span aria-hidden="true">{{ v[1] }}</span>{{ v[2] }}</span>
-{%- endmacro %}
 {% extends "templates/axk_lean.html" %}
+{% from "templates/includes/trace_macros.html" import icon, tag, micro %}
 {% block title %}{{ title }}{% endblock %}
-{% block style %}<link rel="stylesheet" href="/assets/axk_capstone/css/axk.css?v={{ css_v }}">{% endblock %}
+{% block style %}<link rel="stylesheet" href="/assets/axk_capstone/css/axk.css?v={{ css_v }}">
+<link rel="stylesheet" href="/assets/axk_capstone/css/trace.css?v={{ trace_css_v }}">{% endblock %}
+{% macro lots(rows) %}
+<div class="tr-table-wrap"><table class="tr-table">
+  <thead><tr><th scope="col">Lot</th><th scope="col">Commodity</th><th scope="col">Origin</th><th scope="col">Custody</th><th scope="col">Status</th></tr></thead>
+  <tbody>
+  {% for r in rows %}
+  <tr>
+    <td data-l="Lot"><a class="tr-mono tr-link" href="/trace/lot?ref={{ r.lot_ref|urlencode }}">{{ r.lot_ref }}</a></td>
+    <td data-l="Commodity">{{ r.commodity }}</td>
+    <td data-l="Origin">{{ r.origin }}</td>
+    <td data-l="Custody">{{ micro(r.custody) }}</td>
+    <td data-l="Status">{{ tag(r.status) }}</td>
+  </tr>
+  {% endfor %}
+  </tbody>
+</table></div>
+{% endmacro %}
 {% block page_content %}
-<div class="xt-app">
-  {% include "templates/includes/axk_nav.html" %}
-  <main class="xt-main">
-    <div class="xt-head"><div>
-      <h1>Verify a lot</h1>
-      <p>Paste a lot reference, on-chain lot id, record digest or Stellar transaction hash. No account needed.</p>
-    </div></div>
-    <form class="xt-card xt-search" method="get" action="/trace" role="search">
-      <label class="xt-sr" for="q">Lot reference, lot id, digest or transaction hash</label>
-      <input class="xt-input" id="q" name="q" value="{{ q }}" placeholder="e.g. AXK-LIVE-CP-20260930-0001" autocomplete="off" autofocus>
-      <button class="xt-btn" type="submit">Verify</button>
+<div class="tr-app">
+  {% include "templates/includes/trace_bar.html" %}
+  <main class="tr-sheet" id="main" tabindex="-1">
+    <h1>Verify a lot</h1>
+    <p class="tr-lead">Paste a lot reference, on-chain lot id, record digest or Stellar transaction hash. No account needed.</p>
+    <form class="tr-search" method="get" action="/trace" role="search">
+      <label class="tr-sr" for="q">Lot reference, lot id, digest or transaction hash</label>
+      <span class="tr-search-field">{{ icon("scan-line", 18) }}<input id="q" name="q" value="{{ q }}" placeholder="Lot reference, e.g. AXK-LIVE-CP-20260930-0001" autocomplete="off" autofocus></span>
+      <button class="tr-btn primary" type="submit">Verify</button>
     </form>
     {% if q %}
-    <div class="xt-card">
+    <section class="tr-panel" aria-labelledby="res-h">
       {% if results %}
-      <h2>{{ results|length }} matches</h2>
-      <div class="xt-table-wrap"><table class="xt-table"><tbody>
-        {% for r in results %}<tr><td><a href="/trace/lot?ref={{ r.lot_ref|urlencode }}">{{ r.lot_ref }}</a></td><td>{{ r.commodity }}</td><td>{{ r.cooperative_name }}</td><td>{{ pill(r.status) }}</td></tr>{% endfor %}
-      </tbody></table></div>
+      <div class="tr-panel-head"><h2 id="res-h">{{ results|length }} matches</h2></div>
+      {{ lots(results) }}
       {% else %}
-      <div class="xt-empty">Nothing matches “{{ q }}”. Check the reference, or paste the full 64-character hash.</div>
+      <div class="tr-verdict neutral" role="status">{{ icon("shield", 20) }}<span>No lot with reference <span class="tr-mono">{{ q }}</span>. Check the reference, or paste the full 64-character hash.</span><a class="tr-btn ghost" href="/trace">Search again</a></div>
       {% endif %}
-    </div>
+    </section>
     {% endif %}
-    <div class="xt-card">
-      <div class="xt-card-head"><div><h2>Recently active lots</h2><p>Live lots on Stellar testnet.</p></div></div>
-      {% if recent %}
-      <div class="xt-table-wrap"><table class="xt-table"><thead><tr><th>Lot</th><th>Commodity</th><th>Cooperative</th><th>Status</th></tr></thead><tbody>
-        {% for r in recent %}<tr><td><a href="/trace/lot?ref={{ r.lot_ref|urlencode }}">{{ r.lot_ref }}</a></td><td>{{ r.commodity }}</td><td>{{ r.cooperative_name }}</td><td>{{ pill(r.status) }}</td></tr>{% endfor %}
-      </tbody></table></div>
-      {% else %}<div class="xt-empty">No live lots yet.</div>{% endif %}
-    </div>
-    <p class="xt-privacy">What this page shows: statuses, commodity, grade, weight, district-level origin, the cooperative's registered name, Stellar account addresses, record digests and transaction hashes. What it never shows: inspector or buyer names, notes, or anything about individual farmers.</p>
+    <section class="tr-panel" aria-labelledby="recent-h">
+      <div class="tr-panel-head"><h2 id="recent-h">Recently active lots</h2><span class="tr-meta">Live lots on Stellar testnet</span></div>
+      {% if recent %}{{ lots(recent) }}
+      {% else %}<div class="tr-empty">{{ icon("inbox", 20) }}<b>No live lots yet.</b><span>Lots appear here when a cooperative registers one.</span></div>{% endif %}
+    </section>
+    <p class="tr-privacy">What this page shows: statuses, commodity, grade, weight, district-level origin, the cooperative's registered name, Stellar account addresses, record digests and transaction hashes. What it never shows: inspector or buyer names, notes, or anything about individual farmers.</p>
   </main>
 </div>
 {% endblock %}

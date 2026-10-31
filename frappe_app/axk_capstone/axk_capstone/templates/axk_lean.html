@@ -8,6 +8,7 @@
 {#- A lean page shell. Frappe's default web template loads about 3.5 MB of website bundles these screens never use,
     which made the first visit on a slow 3G phone take about a minute. The screens only need their own CSS and
     JavaScript, plus Frappe's CSRF token, which Frappe writes in place of the marker below. -#}
+<link rel="preload" href="/assets/axk_capstone/fonts/PlusJakartaSans-Var.woff2" as="font" type="font/woff2" crossorigin>
 {% block style %}{% endblock %}
 </head>
 <body>

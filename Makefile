@@ -6,7 +6,7 @@ BENCH ?= $(abspath $(CURDIR)/../axk-bench)
 SITE  ?= axk.localhost
 SEED  ?= $(CURDIR)/axk_seed/data
 
-.PHONY: help check-env show-db toolchain test test-contracts test-python test-ledger test-epcis test-odk test-report odk-form build demo run run-frappe seed seed-purge install-app contracts-config zip
+.PHONY: help check-env show-db toolchain test test-contracts test-python test-ledger test-epcis test-odk test-demo test-custody test-report odk-form build demo run run-frappe seed seed-purge install-app contracts-config zip
 
 help:            ## list tasks
 	@grep -E "^[a-z-]+:.*## " $(MAKEFILE_LIST) | sed -E "s/:.*## /\t/" | column -t -s "$$(printf "\t")"
@@ -26,7 +26,10 @@ test:            ## all test suites: contracts, ledger, EPCIS, ODK, then end-to-
 	cd contracts && cargo test
 	python3 scripts/test_ledger.py
 	python3 scripts/test_epcis.py
+	python3 scripts/test_custody.py
 	python3 scripts/test_odk.py
+	python3 scripts/test_demo_users.py
+	python3 scripts/test_trade_txs.py
 	python3 scripts/test_trade.py
 
 test-contracts:  ## smart contract unit tests (cargo)
@@ -40,6 +43,13 @@ test-epcis:      ## GS1 EPCIS export tests (no server; schema checks need jsonsc
 
 test-odk:        ## ODK offline-inspection tests (no server)
 	python3 scripts/test_odk.py
+
+test-demo:       ## demo login accounts and lot row checks (no server; set AXK_DEMO_LIVE=1 for the live suite)
+	python3 scripts/test_demo_users.py
+	python3 scripts/test_trade_txs.py
+
+test-custody:    ## Custody Strip state on the trace pages (no server)
+	python3 scripts/test_custody.py
 
 test-report:     ## technical report source checks (5-page body limit, output paths)
 	python3 docs/report/test_generate_report.py

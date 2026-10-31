@@ -1,11 +1,44 @@
-<nav class="xt-nav" aria-label="AXK Trade">
-  <div class="xt-nav-inner">
-    <a class="xt-brand" href="/trade"><span class="xt-brand-mark" aria-hidden="true">AX</span><span>AXK Trade</span></a>
-    <div class="xt-tabs" role="list">
+{% from "templates/includes/icons.html" import icon %}
+<a class="xt-skip" href="#xt-main">Skip to content</a>
+<header class="xt-top">
+  <a class="xt-brand" href="/trade"><span class="xt-brand-mark" aria-hidden="true">AX</span><span>AXK Trade</span></a>
+  {% if not axk_public %}
+  <details class="xt-menu xt-switch">
+    <summary aria-label="Switch role">{{ icon("users") }}<span>{% for key, href, label in axk_nav %}{% if key == axk_active %}{{ label }}{% endif %}{% endfor %}</span>{{ icon("chevron-down") }}</summary>
+    <div class="xt-menu-panel">
       {% for key, href, label in axk_nav %}
-      <a class="xt-tab" role="listitem" href="{{ href }}" data-tab="{{ key }}" {% if key == axk_active %}aria-current="page"{% endif %}>{{ label }}</a>
+      <a href="{{ href }}" {% if key == axk_active %}aria-current="page"{% endif %}>{{ icon(key) }}{{ label }}</a>
       {% endfor %}
     </div>
-    <span class="xt-net" title="Transactions are signed on Stellar {{ axk_network }}"><i aria-hidden="true"></i>Stellar {{ axk_network }}{% if axk_demo %} · demo{% endif %}</span>
+  </details>
+  {% endif %}
+  <span class="xt-top-gap"></span>
+  <span class="xt-net{% if axk_network == 'offline-simulation' %} xt-sim{% endif %}" title="Transactions are signed on Stellar {{ axk_network }}"><i aria-hidden="true"></i>{% if axk_network == 'offline-simulation' %}Simulation{% else %}Stellar {{ axk_network }}{% endif %}{% if axk_demo %} &middot; demo{% endif %}</span>
+  {% if axk_user %}
+  <details class="xt-menu">
+    <summary aria-label="Account menu"><span class="xt-avatar" aria-hidden="true">{{ axk_initials }}</span></summary>
+    <div class="xt-menu-panel">
+      <div class="xt-menu-who">{{ axk_user_name }}<br>{{ axk_user }}</div>
+      <div class="xt-menu-sep"></div>
+      <a href="/api/method/logout?redirect-to=/login" data-logout>{{ icon("logout") }}Sign out</a>
+    </div>
+  </details>
+  {% else %}
+  <a class="xt-btn small secondary" href="/login?redirect-to={{ axk_next or '/trade' }}">{{ icon("login") }}Sign in</a>
+  {% endif %}
+</header>
+{% if not axk_public %}
+<nav class="xt-rail" aria-label="AXK Trade">
+  <div class="xt-persona" id="xt-persona" aria-live="polite">
+    <div class="xt-persona-label">Acting as</div>
+    <div class="xt-persona-name" id="xt-persona-name">{{ axk_user_name or "Not signed in" }}</div>
+    <span id="xt-persona-addr"></span>
   </div>
+  <div class="xt-rail-group">Trade</div>
+  {% for key, href, label in axk_nav %}
+  {% if key == "verify" %}<div class="xt-rail-group">Public</div><div class="xt-rail-sep"></div>{% endif %}
+  <a class="xt-rail-item" href="{{ href }}" data-tab="{{ key }}" title="{{ label }}" {% if key == axk_active %}aria-current="page"{% endif %}>{{ icon(key) }}<span class="xt-rail-label">{{ label }}</span>{% if key in ("coop", "inspect", "logistics", "port", "buy") %}<span class="xt-rail-count" data-count="{{ key }}"></span>{% endif %}</a>
+  {% endfor %}
+  <div class="xt-rail-foot">ALU Capstone 2026</div>
 </nav>
+{% endif %}

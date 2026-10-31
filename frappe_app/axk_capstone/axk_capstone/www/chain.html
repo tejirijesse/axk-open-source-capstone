@@ -1,121 +1,99 @@
 {% extends "templates/axk_lean.html" %}
-
-{% block title %}AXK Chain Explorer{% endblock %}
+{% from "templates/includes/trace_macros.html" import icon %}
+{% block title %}{{ title }}{% endblock %}
 
 {% block style %}
 <link rel="stylesheet" href="/assets/axk_capstone/css/axk.css?v={{ css_v }}">
+<link rel="stylesheet" href="/assets/axk_capstone/css/trace.css?v={{ trace_css_v }}">
 <link rel="stylesheet" href="/assets/axk_capstone/css/chain.css?v={{ chain_css_v }}">
 {% endblock %}
 
 {% block page_content %}
-<div class="xt-app">{% include "templates/includes/axk_nav.html" %}</div>
-<div class="viz-root" id="xt-chain">
-  <header class="cx-head">
-    <div>
-      <h1>AXK Chain Explorer</h1>
-      <p class="cx-sub">Verification and settlement for cross-border agricultural trade, read from the ledger.</p>
+<div class="xt-app">
+  {% include "templates/includes/axk_nav.html" %}
+  <main class="xt-main cx" id="xt-chain" tabindex="-1">
+    <div class="tr-head">
+      <div>
+        <h1>Chain explorer</h1>
+        <p class="tr-lead">Verification and settlement for cross-border agricultural trade, read from the ledger.</p>
+      </div>
+      <div class="cx-sources">
+        <span class="tr-tag"><span class="cx-dot" aria-hidden="true"></span>Live · Stellar testnet</span>
+        <span class="tr-tag" data-synthetic>{{ icon("flask-conical", 14) }}Synthetic · demo data</span>
+      </div>
     </div>
-    <div class="cx-sources">
-      <span class="cx-pill cx-pill-live"><span class="cx-dot" aria-hidden="true"></span>Live · Stellar testnet</span>
-      <span class="cx-pill cx-pill-synth">Synthetic history · demo data</span>
-    </div>
-  </header>
 
-  <!-- 1. Live testnet -->
-  <section class="cx-section" aria-labelledby="live-h">
-    <div class="cx-section-head">
-      <h2 id="live-h">Settlement on Stellar testnet</h2>
-      <p>Real Soroban contract events for the capstone's RWF test token. Every row links to the transaction on Stellar Expert.</p>
+    <div class="cx-tabs" role="tablist" aria-label="Chain explorer views">
+      <button type="button" class="cx-tab" role="tab" id="tab-live" aria-controls="panel-live" aria-selected="true" data-tab="live">Settlement (live)</button>
+      <button type="button" class="cx-tab" role="tab" id="tab-chain" aria-controls="panel-chain" aria-selected="false" tabindex="-1" data-tab="chain">Hash chain</button>
+      <button type="button" class="cx-tab" role="tab" id="tab-history" aria-controls="panel-history" aria-selected="false" tabindex="-1" data-tab="history">History (synthetic)</button>
     </div>
-    <div class="cx-tiles" id="live-tiles"></div>
-    <div class="cx-card">
-      <div class="cx-card-head">
-        <h3>Where the money went</h3>
-        <p>Buyer → escrow contract → cooperative → members. Ribbon width is RWF moved.</p>
-      </div>
-      <div id="live-flow" class="cx-chart" role="img" aria-label="Flow of RWF from buyer through escrow to cooperative and members"></div>
-    </div>
-    <div class="cx-card">
-      <div class="cx-card-head">
-        <h3>Verified before paid</h3>
-        <p id="verif-meta">Lot registrations and inspections from the lot registry contract. The escrow only accepts money for lots that passed here.</p>
-      </div>
-      <div class="cx-verif-summary" id="verif-summary"></div>
-      <div class="cx-table-wrap"><table class="cx-table" id="verif-table"></table></div>
-    </div>
-    <div class="cx-card">
-      <div class="cx-card-head">
-        <h3>Contract events</h3>
-        <p id="live-meta"></p>
-      </div>
-      <div class="cx-table-wrap"><table class="cx-table" id="live-table"></table></div>
-    </div>
-  </section>
 
-  <!-- 2. Hash chain explorer -->
-  <section class="cx-section" aria-labelledby="chain-h">
-    <div class="cx-section-head">
-      <h2 id="chain-h">Hash-chain explorer <span class="cx-tag">synthetic lot</span></h2>
-      <p>Every verification event commits to the one before it: <code>event_hash = SHA-256(prev_hash + payload + evidence_hash)</code>.
-        Your browser recomputes each hash. Tamper with one event and every link after it breaks.</p>
-    </div>
-    <div class="cx-controls">
-      <label for="lot-picker">Lot</label>
-      <select id="lot-picker"></select>
-      <button type="button" id="btn-verify" class="cx-btn">Verify chain</button>
-      <button type="button" id="btn-tamper" class="cx-btn cx-btn-ghost">Tamper with an event</button>
-      <button type="button" id="btn-reset" class="cx-btn cx-btn-ghost" hidden>Reset</button>
-    </div>
-    <div class="cx-card">
+    <section class="cx-pane" role="tabpanel" id="panel-live" aria-labelledby="tab-live">
+      <div class="cx-tiles" id="live-tiles"></div>
+      <div class="cx-cols">
+        <div class="tr-panel">
+          <div class="tr-panel-head"><h2>Where the money went</h2></div>
+          <p class="tr-small cx-note">Buyer, escrow contract, cooperative, members. Ribbon width is RWF moved; amounts are in RWF.</p>
+          <div id="live-flow" class="cx-chart" role="img" aria-label="Flow of RWF from buyer through escrow to cooperative and members"></div>
+        </div>
+        <div class="tr-panel cx-scroll">
+          <div class="tr-panel-head"><h2>Verified before paid</h2></div>
+          <p class="tr-small cx-note" id="verif-meta">The escrow only accepts money for lots that passed inspection in the lot registry contract.</p>
+          <div class="cx-verif-summary" id="verif-summary"></div>
+          <div class="cx-table-wrap"><table class="cx-table" id="verif-table"></table></div>
+          <div class="tr-panel-head cx-sub-head"><h2>Contract events</h2></div>
+          <p class="tr-small cx-note" id="live-meta"></p>
+          <div class="cx-table-wrap"><table class="cx-table" id="live-table"></table></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="cx-pane" role="tabpanel" id="panel-chain" aria-labelledby="tab-chain" hidden>
+      <p class="tr-small cx-note">Every verification event commits to the one before it: <code>event_hash = SHA-256(prev_hash + payload + evidence_hash)</code>. Your browser recomputes each hash. Tamper with one event and every link after it breaks. The lots here are synthetic.</p>
+      <div class="cx-controls">
+        <label for="lot-picker">Lot</label>
+        <select id="lot-picker"></select>
+        <button type="button" id="btn-verify" class="tr-btn secondary">Verify chain</button>
+        <button type="button" id="btn-tamper" class="tr-btn secondary">Tamper with event…</button>
+        <button type="button" id="btn-reset" class="tr-btn ghost" hidden>Reset</button>
+      </div>
       <div id="chain-summary" class="cx-chain-summary" aria-live="polite"></div>
       <ol id="chain-list" class="cx-chain"></ol>
-    </div>
-  </section>
+    </section>
 
-  <!-- 3. Synthetic history -->
-  <section class="cx-section" aria-labelledby="hist-h">
-    <div class="cx-section-head">
-      <h2 id="hist-h">Five-year ledger history <span class="cx-tag">synthetic</span></h2>
-      <p>Generated seed data (Sep 2021 – Sep 2026) that populates the demo. It illustrates what the system records;
-        it is not evidence from the pilot and no finding is drawn from it.</p>
-    </div>
-    <div class="cx-tiles" id="hist-tiles"></div>
-    <div class="cx-grid">
-      <div class="cx-card cx-span-2">
-        <div class="cx-card-head">
-          <h3>Verification events per month</h3>
-          <p>Anchoring switched on in June 2024; before that, events were hash-chained but kept off-chain.</p>
+    <section class="cx-pane" role="tabpanel" id="panel-history" aria-labelledby="tab-history" hidden>
+      <p class="tr-small cx-note">Generated seed data (Sep 2021 to Sep 2026) that populates the demo. It illustrates what the system records; it is not evidence from the pilot and no finding is drawn from it.</p>
+      <div class="cx-tiles" id="hist-tiles"></div>
+      <div class="cx-grid">
+        <div class="tr-panel cx-span-2">
+          <div class="tr-panel-head"><h2>Verification events per month</h2><span class="tr-tag">{{ icon("flask-conical", 14) }}Synthetic</span></div>
+          <p class="tr-small cx-note">Anchoring switched on in June 2024; before that, events were hash-chained but kept off-chain.</p>
+          <div id="chart-monthly" class="cx-chart"></div>
+          <button type="button" class="tr-btn ghost cx-tbl" data-table="chart-monthly">Show table</button>
         </div>
-        <div id="chart-monthly" class="cx-chart"></div>
-        <button type="button" class="cx-link" data-table="chart-monthly">Show table</button>
-      </div>
-      <div class="cx-card">
-        <div class="cx-card-head">
-          <h3>Mean hours to settle</h3>
-          <p>Settled orders only.</p>
+        <div class="tr-panel">
+          <div class="tr-panel-head"><h2>Mean hours to settle</h2><span class="tr-tag">{{ icon("flask-conical", 14) }}Synthetic</span></div>
+          <p class="tr-small cx-note">Settled orders only.</p>
+          <div id="chart-completion" class="cx-chart"></div>
+          <button type="button" class="tr-btn ghost cx-tbl" data-table="chart-completion">Show table</button>
         </div>
-        <div id="chart-completion" class="cx-chart"></div>
-        <button type="button" class="cx-link" data-table="chart-completion">Show table</button>
-      </div>
-      <div class="cx-card">
-        <div class="cx-card-head">
-          <h3>Escrow lifecycle</h3>
-          <p>Contract states and how many escrows ended in each.</p>
+        <div class="tr-panel">
+          <div class="tr-panel-head"><h2>Escrow lifecycle</h2><span class="tr-tag">{{ icon("flask-conical", 14) }}Synthetic</span></div>
+          <p class="tr-small cx-note">Contract states and how many escrows ended in each.</p>
+          <div id="chart-escrow" class="cx-chart"></div>
         </div>
-        <div id="chart-escrow" class="cx-chart"></div>
-      </div>
-      <div class="cx-card cx-span-2">
-        <div class="cx-card-head">
-          <h3>How settled orders were paid</h3>
-          <p>Share of settled orders by settlement channel, per year.</p>
+        <div class="tr-panel cx-span-2">
+          <div class="tr-panel-head"><h2>How settled orders were paid</h2><span class="tr-tag">{{ icon("flask-conical", 14) }}Synthetic</span></div>
+          <p class="tr-small cx-note">Share of settled orders by settlement channel, per year.</p>
+          <div id="chart-share" class="cx-chart"></div>
+          <button type="button" class="tr-btn ghost cx-tbl" data-table="chart-share">Show table</button>
         </div>
-        <div id="chart-share" class="cx-chart"></div>
-        <button type="button" class="cx-link" data-table="chart-share">Show table</button>
       </div>
-    </div>
-  </section>
-  <div id="cx-tooltip" class="cx-tooltip" role="status" hidden></div>
+    </section>
+  </main>
 </div>
+<div id="cx-tooltip" class="cx-tooltip" role="status" hidden></div>
 {% endblock %}
 
 {% block script %}

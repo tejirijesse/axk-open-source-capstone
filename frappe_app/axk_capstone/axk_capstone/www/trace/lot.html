@@ -1,83 +1,94 @@
-{% macro pill(s) -%}
-{%- set m = {"Registered":["registered","○","Awaiting inspection"],"Approved":["approved","✓","Inspected · passed"],"Rejected":["rejected","✕","Inspected · rejected"],"Funded":["funded","◷","In escrow"],"In Transit":["in-transit","🚚","In transit"],"At Port":["at-port","⚓","At port / terminal"],"Settled":["settled","●","Settled"],"Refunded":["refunded","↩","Refunded"]} -%}
-{%- set v = m.get(s, ["registered","○",s]) -%}
-<span class="xt-pill {{ v[0] }}"><span aria-hidden="true">{{ v[1] }}</span>{{ v[2] }}</span>
-{%- endmacro %}
 {% extends "templates/axk_lean.html" %}
+{% from "templates/includes/trace_macros.html" import icon, tag, short, txref, digest, strip, timeline %}
 {% block title %}{{ title }}{% endblock %}
-{% block style %}<link rel="stylesheet" href="/assets/axk_capstone/css/axk.css?v={{ css_v }}">{% endblock %}
+{% block style %}<link rel="stylesheet" href="/assets/axk_capstone/css/axk.css?v={{ css_v }}">
+<link rel="stylesheet" href="/assets/axk_capstone/css/trace.css?v={{ trace_css_v }}">{% endblock %}
+{% macro acct(addr, kind="account") %}<a class="tr-mono tr-link" href="{{ lot.explorer }}/{{ kind }}/{{ addr }}" target="_blank" rel="noopener" title="{{ addr }}" aria-label="{{ addr }}, opens Stellar Expert">{{ short(addr, 4) if kind == "account" else short(addr, 6) }}{{ icon("arrow-up-right", 14) }}</a>{% endmacro %}
 {% block page_content %}
-<div class="xt-app">
-  {% include "templates/includes/axk_nav.html" %}
-  <main class="xt-main">
-    <div class="xt-crumb"><a href="/trace">Verify</a> / Lot</div>
+<div class="tr-app">
+  {% include "templates/includes/trace_bar.html" %}
+  <main class="tr-sheet" id="main" tabindex="-1">
+    <nav class="tr-crumb" aria-label="Breadcrumb"><a href="/trace">Verify</a> / Lot</nav>
     {% if not lot %}
-    <div class="xt-card"><div class="xt-empty">No lot with that reference. <a href="/trace">Search again</a>.</div></div>
+    <div class="tr-verdict neutral" role="status">{{ icon("shield", 20) }}<span>No lot with reference <span class="tr-mono">{{ frappe.form_dict.get("ref") or "(none)" }}</span>.</span><a class="tr-btn ghost" href="/trace">Search again</a></div>
     {% else %}
-    <div class="xt-head">
-      <div><h1>{{ lot.lot_ref }}</h1><p>{{ lot.commodity }} · {{ lot.origin }} · {{ lot.cooperative_name }}</p></div>
-      {{ pill(lot.status) }}
-    </div>
-    <div class="xt-verdict {{ 'ok' if lot.passed else ('bad' if lot.inspect_tx else '') }}">
-      {% if lot.status == "Settled" %}✓ Trade fully settled, member split executed, and attestation committed on Stellar testnet.
-      {% elif lot.status == "At Port" %}✓ Cargo cleared gate-in at port terminal with verified tamper-evident container seal.
-      {% elif lot.status == "In Transit" %}🚚 Dispatched under active carrier custody and sealed container.
-      {% elif lot.passed %}✓ An authorised inspector passed this lot on-chain{% if lot.attest_tx %}, and its settlement is attested{% endif %}.
-      {% elif lot.inspect_tx %}✕ This lot was rejected at inspection{% if lot.reject_reason %}: {{ lot.reject_reason }}{% endif %}. It cannot be sold through AXK escrow.
-      {% else %}○ Registered by the cooperative; not yet inspected. It cannot be sold through AXK escrow until it passes.{% endif %}
-    </div>
-    <div class="xt-grid-2">
+    {% set kind = "bad" if custody.rejected else ("ok" if lot.status in ("Settled", "At Port") or lot.passed else ("transit" if lot.status == "In Transit" else "neutral")) %}
+    <header class="tr-head">
       <div>
-        <div class="xt-card"><div class="xt-card-head"><h2>Chain of custody</h2></div>
-          <ol class="xt-steps">
-          {% for s in lot.steps %}
-            {% set failed = loop.index0 == 1 and lot.inspect_tx and not lot.passed %}
-            <li class="xt-step {{ ('failed' if failed else 'done') if s.tx else '' }}">
-              <div class="xt-step-dot" aria-hidden="true">{{ ('✕' if failed else '✓') if s.tx else loop.index }}</div>
-              <div class="xt-step-body"><b>{{ s.label }}</b>
-                {% if s.tx %}<div><a href="{{ s.url }}" target="_blank" rel="noopener">{{ s.tx[:10] }}…{{ s.tx[-6:] }} ↗</a>{% if s.at %} · {{ frappe.utils.format_datetime(s.at, "d MMM yyyy HH:mm") }} Kigali{% endif %}</div>
-                {% else %}<div>Not yet</div>{% endif %}
-              </div>
-            </li>
-          {% endfor %}
-          </ol>
-        </div>
+        <h1 class="tr-ref">{{ lot.lot_ref }}</h1>
+        <p class="tr-lead">{{ lot.commodity }} · {{ lot.origin }} · {{ lot.cooperative_name }}</p>
       </div>
-      <div>
-        <div class="xt-card"><div class="xt-card-head"><h2>Lot & Transport</h2></div>
-          <dl class="xt-kv">
+      {{ tag(lot.status) }}
+    </header>
+    <div class="tr-verdict hero {{ kind }}" role="status">
+      {{ icon({"ok": "shield-check", "bad": "shield-x", "transit": "truck", "neutral": "shield"}[kind], 22) }}
+      <span>
+      {% if lot.status == "Settled" %}Trade fully settled, member split executed, and attestation committed on Stellar testnet.
+      {% elif lot.status == "At Port" %}Cargo cleared gate-in at port terminal with verified tamper-evident container seal.
+      {% elif lot.status == "In Transit" %}Dispatched under active carrier custody and sealed container.
+      {% elif lot.passed %}An authorised inspector passed this lot on-chain{% if lot.attest_tx %}, and its settlement is attested{% endif %}.
+      {% elif lot.inspect_tx %}This lot was rejected at inspection{% if lot.reject_reason %}: {{ lot.reject_reason }}{% endif %}. It cannot be sold through AXK escrow.
+      {% else %}Registered by the cooperative; not yet inspected. It cannot be sold through AXK escrow until it passes.{% endif %}
+      </span>
+    </div>
+    {{ strip(lot.steps, custody) }}
+    <div class="tr-cols">
+      <section class="tr-panel" aria-labelledby="tl-h">
+        <div class="tr-panel-head"><h2 id="tl-h">Chain of custody</h2><span class="tr-meta">{{ custody.n }} of 9 on-chain</span></div>
+        {{ timeline(lot.steps, custody) }}
+      </section>
+      <div class="tr-stack">
+        <section class="tr-panel" aria-labelledby="lot-h">
+          <div class="tr-panel-head"><h2 id="lot-h">Lot and transport</h2></div>
+          <dl class="tr-kv">
             <dt>Declared</dt><dd>Grade {{ lot.declared_grade }} · {{ "{:,.0f}".format(lot.quantity_kg or 0) }} kg</dd>
             <dt>Inspected</dt><dd>{% if lot.inspect_tx %}Grade {{ lot.inspected_grade }} · {{ "{:,.0f}".format(lot.inspected_quantity_kg or 0) }} kg{% if lot.moisture_pct %} · {{ lot.moisture_pct }}% moisture{% endif %}{% else %}Not yet{% endif %}</dd>
             {% if lot.carrier_name %}<dt>Carrier</dt><dd>{{ lot.carrier_name }}{% if lot.vehicle_plate %} ({{ lot.vehicle_plate }}){% endif %}</dd>{% endif %}
-            {% if lot.seal_number %}<dt>Seal</dt><dd class="xt-mono">{{ lot.seal_number }}{% if lot.seal_verified %} · intact ✓{% endif %}</dd>{% endif %}
-            {% if lot.port_name %}<dt>Port Terminal</dt><dd>{{ lot.port_name }}{% if lot.container_id %} · {{ lot.container_id }}{% endif %}</dd>{% endif %}
-            {% if lot.customs_ref %}<dt>Customs Ref</dt><dd class="xt-mono">{{ lot.customs_ref }}</dd>{% endif %}
-            <dt>On-chain lot id</dt><dd class="xt-mono">{{ lot.chain_lot_id }}</dd>
-            <dt>Lot record sha256</dt><dd class="xt-mono">{{ lot.lot_digest }}</dd>
-            {% if lot.report_digest %}<dt>Inspection sha256</dt><dd class="xt-mono">{{ lot.report_digest }}</dd>{% endif %}
-            {% if lot.waybill_digest %}<dt>Waybill sha256</dt><dd class="xt-mono">{{ lot.waybill_digest }}</dd>{% endif %}
-            {% if lot.port_receipt_digest %}<dt>Port receipt sha256</dt><dd class="xt-mono">{{ lot.port_receipt_digest }}</dd>{% endif %}
-            {% if lot.attest_digest %}<dt>Settlement sha256</dt><dd class="xt-mono">{{ lot.attest_digest }}</dd>{% endif %}
+            {% if lot.seal_number %}<dt>Seal</dt><dd><span class="tr-mono">{{ lot.seal_number }}</span>{% if lot.seal_verified %} · <span class="tr-inline">{{ icon("shield-check", 14) }}intact</span>{% endif %}</dd>{% endif %}
+            {% if lot.port_name %}<dt>Port terminal</dt><dd>{{ lot.port_name }}{% if lot.container_id %} · {{ lot.container_id }}{% endif %}</dd>{% endif %}
+            {% if lot.customs_ref %}<dt>Customs ref</dt><dd class="tr-mono">{{ lot.customs_ref }}</dd>{% endif %}
+            <dt>On-chain lot id</dt><dd>{{ digest(lot.chain_lot_id) }}</dd>
+            <dt>Lot record sha256</dt><dd>{{ digest(lot.lot_digest) }}</dd>
+            {% if lot.report_digest %}<dt>Inspection sha256</dt><dd>{{ digest(lot.report_digest) }}</dd>{% endif %}
+            {% if lot.waybill_digest %}<dt>Waybill sha256</dt><dd>{{ digest(lot.waybill_digest) }}</dd>{% endif %}
+            {% if lot.port_receipt_digest %}<dt>Port receipt sha256</dt><dd>{{ digest(lot.port_receipt_digest) }}</dd>{% endif %}
+            {% if lot.attest_digest %}<dt>Settlement sha256</dt><dd>{{ digest(lot.attest_digest) }}</dd>{% endif %}
           </dl>
-        </div>
-        <div class="xt-card"><div class="xt-card-head"><h2>Accounts and contracts</h2></div>
-          <dl class="xt-kv">
-            <dt>Cooperative</dt><dd><a class="xt-mono" href="{{ lot.explorer }}/account/{{ lot.cooperative_account }}" target="_blank" rel="noopener">{{ lot.cooperative_account[:6] }}…{{ lot.cooperative_account[-4:] }} ↗</a></dd>
-            {% if lot.inspector_account %}<dt>Inspector</dt><dd><a class="xt-mono" href="{{ lot.explorer }}/account/{{ lot.inspector_account }}" target="_blank" rel="noopener">{{ lot.inspector_account[:6] }}…{{ lot.inspector_account[-4:] }} ↗</a></dd>{% endif %}
-            {% if lot.buyer_account %}<dt>Buyer</dt><dd><a class="xt-mono" href="{{ lot.explorer }}/account/{{ lot.buyer_account }}" target="_blank" rel="noopener">{{ lot.buyer_account[:6] }}…{{ lot.buyer_account[-4:] }} ↗</a></dd>{% endif %}
-            {% for k in ["registry", "escrow", "attestation"] %}{% if lot[k] %}<dt>{{ k|capitalize }}</dt><dd><a class="xt-mono" href="{{ lot.explorer }}/contract/{{ lot[k] }}" target="_blank" rel="noopener">{{ lot[k][:8] }}…{{ lot[k][-6:] }} ↗</a></dd>{% endif %}{% endfor %}
+        </section>
+        <section class="tr-panel" aria-labelledby="acc-h">
+          <div class="tr-panel-head"><h2 id="acc-h">Accounts and contracts</h2></div>
+          <dl class="tr-kv">
+            <dt>Cooperative</dt><dd>{{ acct(lot.cooperative_account) }}</dd>
+            {% if lot.inspector_account %}<dt>Inspector</dt><dd>{{ acct(lot.inspector_account) }}</dd>{% endif %}
+            {% if lot.buyer_account %}<dt>Buyer</dt><dd>{{ acct(lot.buyer_account) }}</dd>{% endif %}
+            {% for k in ["registry", "escrow", "attestation"] %}{% if lot[k] %}<dt>{{ k|capitalize }}</dt><dd>{{ acct(lot[k], "contract") }}</dd>{% endif %}{% endfor %}
           </dl>
-        </div>
-        <div class="xt-card"><div class="xt-card-head"><h2>Export for supply-chain systems</h2></div>
-          <p>This lot's public history as a <strong>GS1 EPCIS 2.0</strong> document, the standard customs, exporters and traceability systems read. Each event links its Stellar transaction.</p>
-          <p style="margin-top:8px"><a class="xt-btn ghost" href="/api/method/axk_capstone.epcis.lot_events?ref={{ lot.lot_ref|urlencode }}&amp;download=1">Download EPCIS (JSON-LD)</a>
-          <a style="margin-left:8px" href="/api/method/axk_capstone.epcis.lot_events?ref={{ lot.lot_ref|urlencode }}" target="_blank" rel="noopener">View ↗</a></p>
-        </div>
-        <div class="xt-card xt-qr"><div>{{ qr|safe }}</div><div><h3>Share or print</h3><p>This QR opens this page. Anyone holding the lot's paperwork can scan it and see the same on-chain evidence, without an account.</p><p class="xt-mono" style="margin-top:6px;overflow-wrap:anywhere">{{ share_url }}</p></div></div>
+        </section>
+        <section class="tr-panel" aria-labelledby="epcis-h">
+          <div class="tr-panel-head"><h2 id="epcis-h">Export for supply-chain systems</h2></div>
+          <p class="tr-small">This lot's public history as a <strong>GS1 EPCIS 2.0</strong> document, the standard customs, exporters and traceability systems read. Each event links its Stellar transaction.</p>
+          <div class="tr-actions">
+            <a class="tr-btn secondary" href="/api/method/axk_capstone.epcis.lot_events?ref={{ lot.lot_ref|urlencode }}&amp;download=1">{{ icon("download", 16) }}Download EPCIS (JSON-LD)</a>
+            <a class="tr-btn ghost" href="/api/method/axk_capstone.epcis.lot_events?ref={{ lot.lot_ref|urlencode }}" target="_blank" rel="noopener">View{{ icon("arrow-up-right", 14) }}</a>
+          </div>
+        </section>
+        <section class="tr-panel tr-qr" aria-labelledby="qr-h">
+          <div class="tr-qr-code" role="img" aria-label="QR code for {{ share_url }}">{{ qr|safe }}</div>
+          <div>
+            <h2 id="qr-h">Share or print</h2>
+            <p class="tr-small">This QR opens this page. Anyone holding the lot's paperwork can scan it and see the same on-chain evidence, without an account.</p>
+            <div class="tr-actions">
+              <button type="button" class="tr-btn secondary" data-copy="{{ share_url }}"><span class="tr-copy-idle">Copy link</span><span class="tr-copy-done">Copied</span></button>
+              <button type="button" class="tr-btn ghost" data-print>{{ icon("printer", 16) }}Print</button>
+            </div>
+            <span class="tr-sr" role="status" aria-live="polite" id="tr-copied"></span>
+          </div>
+        </section>
       </div>
     </div>
-    <p class="xt-privacy">Public by design: statuses, digests, Stellar accounts and transaction hashes. Never public: inspector or buyer names, notes, or anything about individual farmers. To check a document you hold, hash its canonical JSON with SHA-256 and compare it with the digest above.</p>
+    <p class="tr-privacy">Public by design: statuses, digests, Stellar accounts and transaction hashes. Never public: inspector or buyer names, notes, or anything about individual farmers. To check a document you hold, hash its canonical JSON with SHA-256 and compare it with the digest above.</p>
     {% endif %}
   </main>
 </div>
 {% endblock %}
+{% block script %}<script src="/assets/axk_capstone/js/trace.js?v={{ trace_js_v }}"></script>{% endblock %}

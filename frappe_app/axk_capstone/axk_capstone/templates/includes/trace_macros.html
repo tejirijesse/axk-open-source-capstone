@@ -1,0 +1,104 @@
+{#- Public trace components: Lucide icons, status tag, Custody Strip (micro, standard, timeline), TxRef. Spec: docs/design/DESIGN_SYSTEM.md §5, §6. -#}
+{% set ICONS = {
+  "arrow-up-right": '<path d="M7 7h10v10"/><path d="M7 17 17 7"/>',
+  "arrow-right": '<path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>',
+  "check": '<path d="M20 6 9 17l-5-5"/>',
+  "x": '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
+  "circle-check": '<circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/>',
+  "circle-x": '<circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/>',
+  "circle-dashed": '<path d="M10.1 2.182a10 10 0 0 1 3.8 0"/><path d="M13.9 21.818a10 10 0 0 1-3.8 0"/><path d="M17.609 3.721a10 10 0 0 1 2.69 2.7"/><path d="M2.182 13.9a10 10 0 0 1 0-3.8"/><path d="M20.279 17.609a10 10 0 0 1-2.7 2.69"/><path d="M21.818 10.1a10 10 0 0 1 0 3.8"/><path d="M3.721 6.391a10 10 0 0 1 2.7-2.69"/><path d="M6.391 20.279a10 10 0 0 1-2.69-2.7"/>',
+  "flask-conical": '<path d="M14 2v6a2 2 0 0 0 .245.96l5.51 10.08A2 2 0 0 1 18 22H6a2 2 0 0 1-1.755-2.96l5.51-10.08A2 2 0 0 0 10 8V2"/><path d="M6.453 15h11.094"/><path d="M8.5 2h7"/>',
+  "circle-dot": '<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="1"/>',
+  "circle-alert": '<circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/>',
+  "badge-check": '<path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z"/><path d="m9 12 2 2 4-4"/>',
+  "lock": '<rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
+  "truck": '<path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/><path d="M15 18H9"/><path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14"/><circle cx="17" cy="18" r="2"/><circle cx="7" cy="18" r="2"/>',
+  "anchor": '<path d="M12 22V8"/><path d="M5 12H2a10 10 0 0 0 20 0h-3"/><circle cx="12" cy="5" r="3"/>',
+  "undo-2": '<path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5a5.5 5.5 0 0 1-5.5 5.5H11"/>',
+  "shield": '<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/>',
+  "shield-check": '<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/>',
+  "shield-x": '<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m14.5 9.5-5 5"/><path d="m9.5 9.5 5 5"/>',
+  "copy": '<rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>',
+  "scan-line": '<path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 12h10"/>',
+  "printer": '<path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 9V3a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v6"/><rect x="6" y="14" width="12" height="8" rx="1"/>',
+  "download": '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/>',
+  "inbox": '<polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/>',
+} %}
+{% set steps_labels = ["Registered", "Inspected", "Escrow funded", "Dispatched", "At port", "Released", "Split 40/40/20", "Members paid", "Attested"] %}
+{% set TAGS = {
+  "Registered": ["neutral", "circle-dashed", "Awaiting inspection"],
+  "Approved": ["ok", "badge-check", "Passed inspection"],
+  "Rejected": ["bad", "circle-x", "Rejected at inspection"],
+  "Funded": ["neutral", "lock", "In escrow"],
+  "In Transit": ["neutral", "truck", "In transit"],
+  "At Port": ["neutral", "anchor", "At port"],
+  "Settled": ["solid", "circle-check", "Settled"],
+  "Refunded": ["warn", "undo-2", "Refunded"],
+} %}
+
+{% macro icon(name, size=16) -%}
+<svg class="tr-icon" width="{{ size }}" height="{{ size }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">{{ ICONS[name]|safe }}</svg>
+{%- endmacro %}
+
+{% macro tag(status) -%}
+{%- set v = TAGS.get(status, ["neutral", "circle-dashed", status]) -%}
+<span class="tr-tag {{ v[0] }}">{{ icon(v[1], 14) }}{{ v[2] }}</span>
+{%- endmacro %}
+
+{#- Short form of a hash or address: first/last n characters. -#}
+{% macro short(h, n=6) -%}{{ h[:n] }}…{{ h[-n:] }}{%- endmacro %}
+
+{#- TxRef: hash with copy and explorer link. Inline form (copyable=false) is the link only. -#}
+{% macro txref(value, url, n=6, copyable=true) -%}
+<span class="tr-txref">
+  <a class="tr-mono" href="{{ url }}" target="_blank" rel="noopener" title="{{ value }}" aria-label="{{ value }}, opens Stellar Expert">{{ short(value, n) }}{{ icon("arrow-up-right", 14) }}</a>
+  {%- if copyable %}<button type="button" class="tr-copy" data-copy="{{ value }}" aria-label="Copy {{ value }}"><span class="tr-copy-idle">{{ icon("copy", 14) }}</span><span class="tr-copy-done">{{ icon("check", 14) }}</span></button>{% endif %}
+</span>
+{%- endmacro %}
+
+{#- Full digest with copy button (key-value lists). -#}
+{% macro digest(value) -%}
+<span class="tr-digest"><span class="tr-mono">{{ value }}</span><button type="button" class="tr-copy" data-copy="{{ value }}" aria-label="Copy {{ value }}"><span class="tr-copy-idle">{{ icon("copy", 14) }}</span><span class="tr-copy-done">{{ icon("check", 14) }}</span></button></span>
+{%- endmacro %}
+
+{#- c: {"states": notches(), "n": proven steps, "next": label or None, "rejected": bool}. -#}
+{% macro micro(c) -%}
+<span class="tr-micro" role="img" aria-label="Custody: {{ c.n }} of 9 steps on-chain.{% if c.rejected %} Rejected at inspection.{% elif c.next %} Next: {{ c.next }}.{% endif %}">
+  {%- for st in c.states -%}<i class="tr-n {{ st }}"></i>{%- endfor -%}
+</span><span class="tr-micro-n">{{ c.n }}/9</span>
+{%- endmacro %}
+
+{#- Standard strip: filled notches link to their transaction. steps = lot.steps (label, tx, url, at). -#}
+{% macro strip(steps, c) -%}
+<ol class="tr-strip" aria-label="Custody: {{ c.n }} of 9 steps on-chain">
+  {%- for s in steps %}
+  {%- set st = c.states[loop.index0] %}
+  <li class="tr-seg {{ st }}{% if loop.first or loop.last or st in ('next', 'failed') %} show{% endif %}">
+    {%- if s.tx and st in ('on', 'failed') %}<a class="tr-notch" href="{{ s.url }}" target="_blank" rel="noopener" aria-label="{{ steps_labels[loop.index0] }}, transaction {{ short(s.tx) }}, opens Stellar Expert"></a>{% else %}<span class="tr-notch"></span>{% endif %}
+    <span class="tr-seg-label">{{ steps_labels[loop.index0] }}</span>
+  </li>
+  {%- endfor %}
+</ol>
+{%- endmacro %}
+
+{#- Timeline: vertical, one row per step, TxRef and Kigali timestamp under the label. -#}
+{% macro timeline(steps, c) -%}
+<ol class="tr-timeline">
+  {%- for s in steps %}
+  {%- set st = c.states[loop.index0] %}
+  <li class="tr-tl {{ st }}">
+    <span class="tr-notch" aria-hidden="true"></span>
+    <div class="tr-tl-body">
+      <b>{{ s.label }}</b>
+      {%- if s.tx %}
+      <div>{{ txref(s.tx, s.url) }}{% if s.when %}<span class="tr-when">{{ s.when }}</span>{% endif %}</div>
+      {%- elif st == 'off' %}
+      <div class="tr-when">Will not happen</div>
+      {%- else %}
+      <div class="tr-when">Not yet on-chain</div>
+      {%- endif %}
+    </div>
+  </li>
+  {%- endfor %}
+</ol>
+{%- endmacro %}
