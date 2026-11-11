@@ -20,6 +20,8 @@ from a QR code.
 |---|---|
 | **Live system** | https://capstone.axk.org (full stack on Stellar testnet, one-click demo logins) |
 | **Demo video (1080p)** | [docs/demo/axk-capstone-demo.mp4](docs/demo/axk-capstone-demo.mp4) (watch in repo / download, 3:34) • [YouTube mirror](https://youtu.be/MrSXiJG_MAU) |
+| **Final report** | [docs/final/AXK-Capstone-Final-Report.pdf](docs/final/AXK-Capstone-Final-Report.pdf) (73 pages, PDF) • [Word version](docs/final/AXK-Capstone-Final-Report.docx) |
+| **Ethics in Practice** | [docs/final/AXK-Ethics-in-Practice.pdf](docs/final/AXK-Ethics-in-Practice.pdf) (ethical, legal and societal audit, 20 pages) |
 | **Technical report** | [docs/AXK-Capstone-Technical-Report.pdf](docs/AXK-Capstone-Technical-Report.pdf) (5 pages, PDF) • [HTML online report](docs/technical-report.html) |
 | **Submission archive** | [TJ's capstone.zip (Google Drive)](https://drive.google.com/file/d/1q7GMFwB5EmQyrwfB6LSTES91j8XYVlfK/view?usp=sharing) (full bundle: code, report & video) |
 | **Verified live lot** | [AXK-LIVE-CP-20261031-0005](https://capstone.axk.org/trace/lot?ref=AXK-LIVE-CP-20261031-0005) (all 9 custody steps settled on Stellar) |
@@ -102,7 +104,7 @@ roadmap work (LOG-4, PORT-1). Full design: [docs/architecture.md](docs/architect
 | ![Sign in](docs/screenshots/08-sign-in.jpg) **Sign in.** One demo account per role; click a row, then sign in. | ![Overview](docs/screenshots/01-overview.jpg) **Overview.** Work per role, recent lots and custody progress. |
 | ![Cooperative](docs/screenshots/02-cooperative.jpg) **Cooperative.** Register a lot and follow it to payment. | ![Inspector](docs/screenshots/03-inspector.jpg) **Inspector.** Measured values, pass or reject with a reason, offline import. |
 | ![Buyer](docs/screenshots/04-buyer.jpg) **Buyer.** Inspected lots only; fund escrow, confirm delivery. | ![Port](docs/screenshots/09-port.jpg) **Port / terminal.** Expected seal from the waybill, gate-in form. |
-| ![Lot timeline](docs/screenshots/05-lot-timeline.jpg) **Lot.** Nine-step custody strip; every notch is a real transaction. | ![Public trace](docs/screenshots/06-public-trace.jpg) **Public trace.** Verdict, digests, QR code, EPCIS export; no login, no personal data. |
+| ![Lot timeline](docs/screenshots/05-lot-timeline.jpg) **Lot.** Nine-step custody strip; every notch is a real transaction. | ![Public trace](docs/screenshots/06-public-trace.jpg) **Public trace.** Verdict, digests, QR code, EPCIS export; no login. No driver, inspector or buyer names; carrier, vehicle plate and customs details are shown. |
 | ![Tamper alert](docs/screenshots/11-tamper-alert.jpg) **Tamper alert.** A mismatched seal is refused and nothing is signed. | ![Chain explorer](docs/screenshots/07-chain-explorer.jpg) **Chain explorer.** Live testnet events and the flow of funds. |
 
 <p align="center"><img src="docs/screenshots/12-phone.jpg" width="520" alt="Cooperative screen and public lot page on a phone"><br><em>Phone layout (390 px): cooperative screen and public lot page.</em></p>
@@ -342,6 +344,8 @@ then `bench --site <site> migrate && bench build`.
 
 | Topic | Document |
 |---|---|
+| Capstone final report (PDF, 73 pages; Word version) | [docs/final/AXK-Capstone-Final-Report.pdf](docs/final/AXK-Capstone-Final-Report.pdf) • [.docx](docs/final/AXK-Capstone-Final-Report.docx) |
+| Ethics in Practice: risks, laws, IP and REC approval (PDF) | [docs/final/AXK-Ethics-in-Practice.pdf](docs/final/AXK-Ethics-in-Practice.pdf) |
 | Technical report (PDF, 5 pages) | [docs/AXK-Capstone-Technical-Report.pdf](docs/AXK-Capstone-Technical-Report.pdf) |
 | Technical report (HTML interactive view) | [docs/technical-report.html](docs/technical-report.html) |
 | Demo video walkthrough (1080p MP4) | [docs/demo/axk-capstone-demo.mp4](docs/demo/axk-capstone-demo.mp4) |
