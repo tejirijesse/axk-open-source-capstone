@@ -35,6 +35,10 @@ class handler(server.AXKHandler):
         self._restore_path()
         super().do_GET()
 
+    def do_HEAD(self):
+        self._restore_path()
+        super().do_GET()
+
     def do_POST(self):
         self._restore_path()
         super().do_POST()

@@ -4,6 +4,8 @@
 !/api
 !/scripts
 !/frappe_app
+!/public
+!/public/**
 !/vercel.json
 !/requirements.txt
 /scripts/*
