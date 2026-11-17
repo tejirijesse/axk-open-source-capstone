@@ -532,7 +532,7 @@ class AXKHandler(http.server.SimpleHTTPRequestHandler):
         # Redirect root
         if path in ("", "/"):
             self.send_response(302)
-            self.send_header("Location", "/trade")
+            self.send_header("Location", "/login")
             self.end_headers()
             return
 
@@ -550,6 +550,10 @@ class AXKHandler(http.server.SimpleHTTPRequestHandler):
             return
 
         # Web pages
+        if path in ("/login", "/login.html"):
+            self.serve_login_page(query)
+            return
+
         if path in ("/trade", "/trade/coop", "/trade/inspect", "/trade/logistics", "/trade/port", "/trade/buy", "/trade/lot"):
             self.serve_trade_page(path, query)
             return
@@ -633,31 +637,154 @@ class AXKHandler(http.server.SimpleHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
-    def render_nav(self, active_tab):
-        nav_items = [
-            ("overview", "/trade", "Overview"),
-            ("coop", "/trade/coop", "Cooperative"),
-            ("inspect", "/trade/inspect", "Inspector"),
-            ("logistics", "/trade/logistics", "Logistics"),
-            ("port", "/trade/port", "Port / Terminal"),
-            ("buy", "/trade/buy", "Buyer"),
-            ("verify", "/trace", "Verify"),
-            ("chain", "/chain", "Chain explorer"),
-        ]
-        tabs = []
-        for key, href, label in nav_items:
-            current = ' aria-current="page"' if key == active_tab else ''
-            tabs.append(f'<a class="xt-tab" role="listitem" href="{href}" data-tab="{key}"{current}>{label}</a>')
-        tabs_html = "\n      ".join(tabs)
-        return f'''<nav class="xt-nav" aria-label="AXK Trade">
-  <div class="xt-nav-inner">
-    <a class="xt-brand" href="/trade"><span class="xt-brand-mark" aria-hidden="true">AX</span><span>AXK Trade</span></a>
-    <div class="xt-tabs" role="list">
-      {tabs_html}
-    </div>
-    <span class="xt-net xt-sim" title="Nothing on this server is sent to Stellar. Run make run-frappe for real testnet transactions."><i aria-hidden="true"></i>Offline simulation · not on-chain</span>
+    def render_nav(self, active_tab, is_public=False):
+        def ic(name, size=16):
+            paths = {
+                "overview": '<rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/>',
+                "coop": '<path d="M7 20h10"/><path d="M10 20c5.5-2.5.8-6.4 3-10"/><path d="M9.5 9.4c1.1.8 1.8 2.2 2.3 3.7-2 .4-3.5.4-4.8-.3-1.2-.6-2.3-1.9-3-4.2 2.8-.5 4.4 0 5.5.8z"/><path d="M14.1 6a7 7 0 0 0-1.1 4c1.9-.1 3.3-.6 4.3-1.4 1-1 1.6-2.3 1.7-4.6-2.7.1-4 1-4.9 2z"/>',
+                "inspect": '<rect width="8" height="4" x="8" y="2" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="m9 14 2 2 4-4"/>',
+                "logistics": '<path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/><path d="M15 18H9"/><path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14"/><circle cx="17" cy="18" r="2"/><circle cx="7" cy="18" r="2"/>',
+                "port": '<circle cx="12" cy="5" r="3"/><path d="M12 22V8"/><path d="M5 12H2a10 10 0 0 0 20 0h-3"/>',
+                "buy": '<path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"/><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/>',
+                "verify": '<path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 12h10"/>',
+                "chain": '<rect width="7" height="7" x="14" y="3" rx="1"/><path d="M10 21V8a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-5a1 1 0 0 0-1-1H3"/>',
+                "users": '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
+                "chevron-down": '<path d="m6 9 6 6 6-6"/>',
+            }
+            return f'<svg class="xt-i" xmlns="http://www.w3.org/2000/svg" width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">{paths.get(name, "")}</svg>'
+
+        top_bar = f'''<a class="xt-skip" href="#xt-main">Skip to content</a>
+<header class="xt-top">
+  <a class="xt-brand" href="/trade"><span class="xt-brand-mark" aria-hidden="true">AX</span><span>AXK Trade</span></a>
+  <span class="xt-top-gap"></span>
+  <span class="xt-net xt-sim" title="Simulated locally on offline storage"><i aria-hidden="true"></i>Simulation · demo</span>
+  <div class="xt-menu">
+    <summary aria-label="Account"><span class="xt-avatar" aria-hidden="true">TJ</span></summary>
   </div>
+</header>'''
+
+        if is_public:
+            return top_bar
+
+        role_labels = {
+            "overview": "Overview",
+            "coop": "Cooperative",
+            "inspect": "Inspector",
+            "logistics": "Logistics",
+            "port": "Port / Terminal",
+            "buy": "Buyer",
+            "verify": "Verify",
+            "chain": "Chain explorer"
+        }
+        acting_as = role_labels.get(active_tab, "Overview (Supervisor)")
+
+        rail = f'''<nav class="xt-rail" aria-label="AXK Trade">
+  <div class="xt-persona" id="xt-persona" aria-live="polite">
+    <div class="xt-persona-label">Acting as</div>
+    <div class="xt-persona-name" id="xt-persona-name">{acting_as}</div>
+    <span id="xt-persona-addr"></span>
+  </div>
+  <div class="xt-rail-group">Trade</div>
+  <a class="xt-rail-item" href="/trade" data-tab="overview" title="Overview" {"aria-current=\"page\"" if active_tab == "overview" else ""}>
+    {ic("overview")}<span class="xt-rail-label">Overview</span>
+  </a>
+  <a class="xt-rail-item" href="/trade/coop" data-tab="coop" title="Cooperative" {"aria-current=\"page\"" if active_tab == "coop" else ""}>
+    {ic("coop")}<span class="xt-rail-label">Cooperative</span><span class="xt-rail-count" data-count="coop"></span>
+  </a>
+  <a class="xt-rail-item" href="/trade/inspect" data-tab="inspect" title="Inspector" {"aria-current=\"page\"" if active_tab == "inspect" else ""}>
+    {ic("inspect")}<span class="xt-rail-label">Inspector</span><span class="xt-rail-count" data-count="inspect"></span>
+  </a>
+  <a class="xt-rail-item" href="/trade/logistics" data-tab="logistics" title="Logistics" {"aria-current=\"page\"" if active_tab == "logistics" else ""}>
+    {ic("logistics")}<span class="xt-rail-label">Logistics</span><span class="xt-rail-count" data-count="logistics"></span>
+  </a>
+  <a class="xt-rail-item" href="/trade/port" data-tab="port" title="Port / Terminal" {"aria-current=\"page\"" if active_tab == "port" else ""}>
+    {ic("port")}<span class="xt-rail-label">Port / Terminal</span><span class="xt-rail-count" data-count="port"></span>
+  </a>
+  <a class="xt-rail-item" href="/trade/buy" data-tab="buy" title="Buyer" {"aria-current=\"page\"" if active_tab == "buy" else ""}>
+    {ic("buy")}<span class="xt-rail-label">Buyer</span><span class="xt-rail-count" data-count="buy"></span>
+  </a>
+  <div class="xt-rail-group">Public</div>
+  <div class="xt-rail-sep"></div>
+  <a class="xt-rail-item" href="/trace" data-tab="verify" title="Verify" {"aria-current=\"page\"" if active_tab == "verify" else ""}>
+    {ic("verify")}<span class="xt-rail-label">Verify</span>
+  </a>
+  <a class="xt-rail-item" href="/chain" data-tab="chain" title="Chain explorer" {"aria-current=\"page\"" if active_tab == "chain" else ""}>
+    {ic("chain")}<span class="xt-rail-label">Chain explorer</span>
+  </a>
+  <div class="xt-rail-foot">ALU Capstone 2026</div>
 </nav>'''
+        return f"{top_bar}\n{rail}"
+
+    def serve_login_page(self, query):
+        css_time = asset_version(PUBLIC_DIR / "css" / "axk.css")
+        js_time = asset_version(PUBLIC_DIR / "js" / "login.js")
+        html = f'''<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sign in · AXK Trade</title>
+<link rel="stylesheet" href="/assets/axk_capstone/css/axk.css?v={css_time}">
+</head>
+<body>
+<div class="xl" id="xl" data-explorer="0">
+  <section class="xl-brand" aria-label="About AXK Trade">
+    <div class="xl-mark"><i aria-hidden="true"><svg class="xt-i" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 12h10"/></svg></i>AXK Trade</div>
+    <div class="xl-hero">
+      <h1>Nothing without its receipt.</h1>
+      <p>Every step of a coffee lot, from the cooperative to the buyer, leaves a transaction on Stellar that anyone can check.</p>
+    </div>
+    <div class="xl-specimen" id="xl-specimen" aria-label="Example custody record">
+      <div class="xl-specimen-meta"><span>Latest settled lot</span><span class="xt-mono">AXK-KGL-COFFEE-20261001223155</span></div>
+      <div class="xt-notches">
+        <div class="xt-cell"><i class="xt-notch" data-fill="1"></i><span class="xt-lbl">Registered</span></div>
+        <div class="xt-cell"><i class="xt-notch" data-fill="1"></i><span class="xt-lbl">Inspected</span></div>
+        <div class="xt-cell"><i class="xt-notch" data-fill="1"></i><span class="xt-lbl">Escrow funded</span></div>
+        <div class="xt-cell"><i class="xt-notch" data-fill="1"></i><span class="xt-lbl">Dispatched</span></div>
+        <div class="xt-cell"><i class="xt-notch" data-fill="1"></i><span class="xt-lbl">At port</span></div>
+        <div class="xt-cell"><i class="xt-notch" data-fill="1"></i><span class="xt-lbl">Released</span></div>
+        <div class="xt-cell"><i class="xt-notch" data-fill="1"></i><span class="xt-lbl">Split 40/40/20</span></div>
+        <div class="xt-cell"><i class="xt-notch" data-fill="1"></i><span class="xt-lbl">Members paid</span></div>
+        <div class="xt-cell"><i class="xt-notch" data-fill="1"></i><span class="xt-lbl">Attested</span></div>
+      </div>
+    </div>
+    <div class="xl-foot">ALU Capstone 2026</div>
+  </section>
+
+  <main class="xl-form">
+    <div class="xl-col">
+      <div>
+        <h1>Sign in</h1>
+        <p class="xl-sub">Use your AXK Trade account.</p>
+      </div>
+      <form id="xl-form" class="xl-fields" novalidate>
+        <div class="xt-field">
+          <label for="xl-usr">Email</label>
+          <input id="xl-usr" class="xt-input" type="text" name="usr" autocomplete="username" autocapitalize="none" spellcheck="false" required autofocus>
+        </div>
+        <div class="xt-field">
+          <label for="xl-pwd">Password</label>
+          <div class="xl-pw">
+            <input id="xl-pwd" class="xt-input" type="password" name="pwd" autocomplete="current-password" required>
+            <button type="button" id="xl-show" aria-controls="xl-pwd" aria-pressed="false">Show</button>
+          </div>
+          <div class="xt-err" id="xl-err" role="alert"></div>
+        </div>
+        <button class="xt-btn block" type="submit" id="xl-go">Sign in</button>
+      </form>
+      <div class="xl-demo" id="xl-demo">
+        <h2>Demo accounts</h2>
+        <p class="xl-hint" id="xl-hint">Choose a role to fill the form.</p>
+        <div class="xl-list" id="xl-list" role="list"></div>
+      </div>
+      <a class="xt-btn ghost" href="/trace">Verify a lot without signing in</a>
+    </div>
+  </main>
+</div>
+<script src="/assets/axk_capstone/js/login.js?v={js_time}"></script>
+</body>
+</html>'''
+        self.send_html(html)
 
     def serve_trade_page(self, path, query):
         page_key = "overview"
@@ -704,7 +831,7 @@ class AXKHandler(http.server.SimpleHTTPRequestHandler):
 
     def serve_trace_search(self, query):
         q = query.get("q", [""])[0].strip()
-        nav_html = self.render_nav("verify")
+        nav_html = self.render_nav("verify", is_public=True)
         css_time = asset_version(PUBLIC_DIR / "css" / "axk.css")
 
         conn = get_db()
@@ -763,7 +890,7 @@ class AXKHandler(http.server.SimpleHTTPRequestHandler):
   <link rel="stylesheet" href="/assets/axk_capstone/css/axk.css?v={css_time}">
 </head>
 <body>
-<div class="xt-app">
+<div class="xt-app xt-public">
   {nav_html}
   <main class="xt-main">
     <div class="xt-head"><div>
@@ -791,7 +918,7 @@ class AXKHandler(http.server.SimpleHTTPRequestHandler):
 
     def serve_trace_lot(self, query):
         ref = (query.get("ref") or query.get("lot") or [""])[0].strip()
-        nav_html = self.render_nav("verify")
+        nav_html = self.render_nav("verify", is_public=True)
         css_time = asset_version(PUBLIC_DIR / "css" / "axk.css")
 
         conn = get_db()
@@ -860,7 +987,7 @@ class AXKHandler(http.server.SimpleHTTPRequestHandler):
   <link rel="stylesheet" href="/assets/axk_capstone/css/axk.css?v={css_time}">
 </head>
 <body>
-<div class="xt-app">
+<div class="xt-app xt-public">
   {nav_html}
   <main class="xt-main">
     <div class="xt-crumb"><a href="/trace">Verify</a> / Lot</div>
@@ -955,7 +1082,36 @@ class AXKHandler(http.server.SimpleHTTPRequestHandler):
         c = conn.cursor()
 
         try:
-            if method == "axk_capstone.trade_api.overview":
+            if method in ("axk_capstone.demo.demo_accounts", "demo_accounts"):
+                self.send_json([
+                    {"key": "coop", "label": "Cooperative", "full_name": "Claudine Uwase", "organisation": "Koperative Twisungane", "email": "coop@capstone.axk.org", "route": "/trade/coop", "password": "demo"},
+                    {"key": "inspector", "label": "Inspector", "full_name": "Josiane Mukamana", "organisation": "Independent inspection", "email": "inspector@capstone.axk.org", "route": "/trade/inspect", "password": "demo"},
+                    {"key": "logistics", "label": "Logistics", "full_name": "Eric Habimana", "organisation": "Swift Freight Logistics", "email": "logistics@capstone.axk.org", "route": "/trade/logistics", "password": "demo"},
+                    {"key": "port", "label": "Port / Terminal", "full_name": "Aline Ingabire", "organisation": "Kigali Logistics Platform & Terminal", "email": "port@capstone.axk.org", "route": "/trade/port", "password": "demo"},
+                    {"key": "buyer", "label": "Buyer", "full_name": "Patrick Mugisha", "organisation": "Goma Grain Traders", "email": "buyer@capstone.axk.org", "route": "/trade/buy", "password": "demo"},
+                    {"key": "supervisor", "label": "Supervisor", "full_name": "Grace Uwimana", "organisation": "AXK programme", "email": "supervisor@capstone.axk.org", "route": "/trade", "password": "demo"},
+                ])
+                return
+
+            elif method == "login":
+                usr = (post_data or {}).get("usr", "")
+                routes = {
+                    "coop@capstone.axk.org": "/trade/coop",
+                    "inspector@capstone.axk.org": "/trade/inspect",
+                    "logistics@capstone.axk.org": "/trade/logistics",
+                    "port@capstone.axk.org": "/trade/port",
+                    "buyer@capstone.axk.org": "/trade/buy",
+                    "supervisor@capstone.axk.org": "/trade"
+                }
+                route = routes.get(usr, "/trade")
+                self.send_json({"message": "Logged In", "home_page": route})
+                return
+
+            elif method in ("logout", "frappe.handler.logout"):
+                self.send_json({"message": "Logged Out"})
+                return
+
+            elif method == "axk_capstone.trade_api.overview":
                 c.execute("SELECT * FROM axk_chain_trade ORDER BY modified DESC")
                 rows = [format_row(r) for r in c.fetchall()]
                 counts = {}
