@@ -1,0 +1,64 @@
+{% extends "templates/axk_lean.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block style %}<link rel="stylesheet" href="/assets/axk_capstone/css/axk.css?v={{ css_v }}">
+<link rel="stylesheet" href="/assets/axk_capstone/css/trace.css?v={{ trace_css_v }}">
+<style>
+.pv { max-width: 760px; }
+.pv h2 { font-size: 17px; line-height: 24px; margin: 28px 0 8px; }
+.pv p, .pv li { font-size: 14px; line-height: 22px; }
+.pv p { margin: 0 0 10px; }
+.pv ul { margin: 0 0 10px; padding-left: 20px; }
+.pv li { margin-bottom: 4px; }
+.pv-notice { border: 1px solid var(--line, #d7dfd9); border-radius: 8px; padding: 12px 14px; margin: 16px 0; }
+.pv-updated { font-size: 13px; opacity: .75; }
+</style>{% endblock %}
+{% block page_content %}
+<div class="tr-app">
+  {% include "templates/includes/trace_bar.html" %}
+  <main class="tr-sheet pv" id="main" tabindex="-1">
+    <h1>Privacy Policy</h1>
+    <p class="pv-updated">Last updated 4 November 2026</p>
+    <div class="pv-notice"><strong>This is a student research prototype.</strong> It runs on the Stellar test network and moves no real money. Please do not enter real personal, farmer or commercial information.</div>
+
+    <h2>Who runs this site</h2>
+    <p>AXK Trade at capstone.axk.org is a capstone project by Oghenetejiri Jesse, a Bachelor of Software Engineering student at African Leadership University, supervised by Junior Turatsinze. The server is provided by AXK Network. For any privacy question or request, write to <a href="mailto:o.jesse1@alustudent.com">o.jesse1@alustudent.com</a>.</p>
+
+    <h2>What the site stores</h2>
+    <ul>
+      <li><strong>Accounts:</strong> the email address, name and role of each sign-in account. The accounts shown on the sign-in page are shared demonstration accounts, not personal ones.</li>
+      <li><strong>Trade records you enter:</strong> commodity, variety, grade, quantity, origin and harvest date; inspection results, moisture, notes and rejection reasons; buyer and cooperative names and amounts; carrier, driver and vehicle plate; container seal, port, container number and customs reference.</li>
+      <li><strong>Cookies:</strong> the sign-in session cookies set by the Frappe framework (sid, system_user, full_name, user_id and user_image). There are no analytics or advertising cookies.</li>
+      <li><strong>Technical logs:</strong> like most websites, the server software may record IP addresses, pages requested, sign-ins and errors, to keep the site running and investigate problems.</li>
+    </ul>
+    <p>Answers to the research questionnaire and interviews are handled under the study's consent form, not through this site. The study has ALU Research Ethics Committee approval, code SEPT26-BSE-039.</p>
+
+    <h2>Why it is used</h2>
+    <p>The information is used to run the prototype: to show each screen, record each step of a test trade, let people verify a lot, and evaluate the system for this capstone. It is not sold and is not used for advertising.</p>
+
+    <h2>What is public</h2>
+    <p>The lot pages at <a href="/trace">/trace</a> need no sign-in. They can show a lot's reference, status, commodity, grade, weight and origin; the cooperative's name; inspection results and rejection reasons; carrier, vehicle plate, seal, port, container and customs details; amounts, Stellar account addresses, record digests and transaction hashes. Driver, inspector and buyer names and inspection notes are not on these pages.</p>
+
+    <h2>What goes on the blockchain</h2>
+    <p>Each trade step is a transaction on the public Stellar test network. It records account addresses, lot status, the inspection result, grade and quantity, payment amounts and split shares, and SHA-256 digests of the full records. The full records stay in the site's database. Anyone can read what is on the network, including through third-party explorers such as Stellar Expert, and links to those sites leave this one.</p>
+    <p><strong>Blockchain entries cannot be edited or deleted by us.</strong> Deleting a record from the database does not remove its digest or the related transactions. A digest does not reveal the record by itself, but addresses and repeated activity may still be linked to a person or organisation.</p>
+
+    <h2>Who can see the rest</h2>
+    <ul>
+      <li><strong>Signed-in users:</strong> the demonstration password can be shown on the sign-in page, so anyone may be able to use those accounts. They can see the trade screens, including names and notes entered there, and they are not restricted to one role.</li>
+      <li><strong>The project team and server provider:</strong> people who maintain the site can access the database and logs.</li>
+    </ul>
+
+    <h2>How long it is kept</h2>
+    <p>This prototype has no automatic deletion schedule. Records stay in the database until the project team removes them, and you can ask for that at any time. The limits on blockchain entries are explained above.</p>
+
+    <h2>Security and its limits</h2>
+    <p>The site uses HTTPS, sign-in for trade actions and a limit on signed transactions per user. Stellar test keys are held on the server for each role and are never sent to the browser. These protections are for testing. The system has not had an independent security audit and is not ready for real money or sensitive information.</p>
+
+    <h2>Your choices and rights</h2>
+    <p>You can ask to see, correct or delete information about you in the site's database, or object to its use, by emailing the address above. Requests are handled by hand. We will tell you if something cannot be changed, such as a blockchain entry. In Rwanda, you can also raise a complaint with the National Cyber Security Authority, which supervises personal data protection.</p>
+
+    <h2>Changes</h2>
+    <p>If this policy changes, the date at the top will change with it.</p>
+  </main>
+</div>
+{% endblock %}

@@ -39,6 +39,6 @@
   {% if key == "verify" %}<div class="xt-rail-group">Public</div><div class="xt-rail-sep"></div>{% endif %}
   <a class="xt-rail-item" href="{{ href }}" data-tab="{{ key }}" title="{{ label }}" {% if key == axk_active %}aria-current="page"{% endif %}>{{ icon(key) }}<span class="xt-rail-label">{{ label }}</span>{% if key in ("coop", "inspect", "logistics", "port", "buy") %}<span class="xt-rail-count" data-count="{{ key }}"></span>{% endif %}</a>
   {% endfor %}
-  <div class="xt-rail-foot">ALU Capstone 2026</div>
+  <div class="xt-rail-foot">ALU Capstone 2026 · <a href="/privacy" style="color:inherit">Privacy</a></div>
 </nav>
 {% endif %}
