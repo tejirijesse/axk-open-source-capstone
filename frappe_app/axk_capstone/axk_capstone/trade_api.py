@@ -7,12 +7,14 @@ Demo mode exists so the capstone can be demonstrated without sharing credentials
 accepts a request from the network.
 """
 
+import json
 from zoneinfo import ZoneInfo
 
 import frappe
 from frappe.utils import cint, flt, get_datetime, get_system_timezone, getdate, nowdate
 
 from axk_capstone import chain
+from axk_capstone.ledger.workflow import TradeWorkflow
 from axk_capstone.setup import DEMO_ROLE
 
 DT = "AXK Chain Trade"
@@ -36,7 +38,7 @@ FIELDS = ["name", "lot_ref", "status", "commodity", "variety", "declared_grade",
           "carrier_name", "driver_name", "vehicle_plate", "seal_number", "destination_port", "waybill_ref",
           "port_name", "container_id", "customs_ref", "seal_verified",
           "registered_at", "inspected_at", "funded_at", "dispatched_at", "port_received_at", "settled_at",
-          "reject_reason", "modified"]
+          "reject_reason", "quality_criteria", "quality_checks", "modified"]
 TX_FIELDS = ["register_tx", "inspect_tx", "fund_tx", "dispatch_tx", "port_tx",
              "release_tx", "split_tx", "distribute_tx", "attest_tx"]
 FIELDS += TX_FIELDS
@@ -110,6 +112,9 @@ def _row(d):
         "funded_at": _iso(d.funded_at), "dispatched_at": _iso(d.dispatched_at),
         "port_received_at": _iso(d.port_received_at), "settled_at": _iso(d.settled_at),
         "reject_reason": d.reject_reason,
+        # The limits the lot is inspected against, and the result of each check once inspected.
+        "quality_criteria": TradeWorkflow.criteria_for(d).to_dict(),
+        "quality_checks": json.loads(d.quality_checks) if d.quality_checks else None,
         "modified": _iso(d.modified),
         "txs": [d.get(f) or "" for f in TX_FIELDS],
     }

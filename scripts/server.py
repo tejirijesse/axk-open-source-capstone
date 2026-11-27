@@ -38,6 +38,18 @@ TEMPLATES_DIR = FRAPPE_APP / "templates"
 DB_PATH = Path(os.environ.get("AXK_SIM_DB") or BASE_DIR / "scripts" / "axk.db")
 STATE_ENV = BASE_DIR / "scripts" / ".demo-state.env"
 
+# The same quality rule as the Frappe app (ledger/quality.py has no Frappe import), loaded by path so the
+# simulation needs nothing installed.
+def _load_quality():
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("axk_quality", FRAPPE_APP / "ledger" / "quality.py")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+quality = _load_quality()
+
 PORT = int(os.environ.get("PORT", 8000))
 EXPLORER = "https://stellar.expert/explorer/testnet"
 DECIMALS = 10**7
@@ -463,8 +475,21 @@ def format_row(r):
         "port_received_at": r["port_received_at"] or "",
         "settled_at": r["settled_at"] or "",
         "reject_reason": r["reject_reason"],
+        "quality_criteria": _criteria(r).to_dict(),
+        "quality_checks": _checks(r),
         "modified": r["modified"] or "",
     }
+
+
+def _criteria(r):
+    return quality.QualityCriteria.for_lot(r["commodity"], r["declared_grade"], r["quantity_kg"])
+
+
+def _checks(r):
+    """Each check's result once inspected, recomputed from the stored measurements."""
+    if not r["inspected_at"] or r["inspected_quantity_kg"] is None:
+        return None
+    return quality.assess(_criteria(r), r["inspected_grade"], r["inspected_quantity_kg"], r["moisture_pct"]).to_list()
 
 def format_lot_detail(r):
     data = format_row(r)
@@ -638,6 +663,10 @@ class AXKHandler(http.server.SimpleHTTPRequestHandler):
         self.wfile.write(body)
 
     def render_nav(self, active_tab, is_public=False):
+        # Python 3.10 and 3.11 do not allow a backslash inside an f-string expression, so build the attribute here.
+        def cur(tab):
+            return 'aria-current="page"' if active_tab == tab else ""
+
         def ic(name, size=16):
             paths = {
                 "overview": '<rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/>',
@@ -685,30 +714,30 @@ class AXKHandler(http.server.SimpleHTTPRequestHandler):
     <span id="xt-persona-addr"></span>
   </div>
   <div class="xt-rail-group">Trade</div>
-  <a class="xt-rail-item" href="/trade" data-tab="overview" title="Overview" {"aria-current=\"page\"" if active_tab == "overview" else ""}>
+  <a class="xt-rail-item" href="/trade" data-tab="overview" title="Overview" {cur("overview")}>
     {ic("overview")}<span class="xt-rail-label">Overview</span>
   </a>
-  <a class="xt-rail-item" href="/trade/coop" data-tab="coop" title="Cooperative" {"aria-current=\"page\"" if active_tab == "coop" else ""}>
+  <a class="xt-rail-item" href="/trade/coop" data-tab="coop" title="Cooperative" {cur("coop")}>
     {ic("coop")}<span class="xt-rail-label">Cooperative</span><span class="xt-rail-count" data-count="coop"></span>
   </a>
-  <a class="xt-rail-item" href="/trade/inspect" data-tab="inspect" title="Inspector" {"aria-current=\"page\"" if active_tab == "inspect" else ""}>
+  <a class="xt-rail-item" href="/trade/inspect" data-tab="inspect" title="Inspector" {cur("inspect")}>
     {ic("inspect")}<span class="xt-rail-label">Inspector</span><span class="xt-rail-count" data-count="inspect"></span>
   </a>
-  <a class="xt-rail-item" href="/trade/logistics" data-tab="logistics" title="Logistics" {"aria-current=\"page\"" if active_tab == "logistics" else ""}>
+  <a class="xt-rail-item" href="/trade/logistics" data-tab="logistics" title="Logistics" {cur("logistics")}>
     {ic("logistics")}<span class="xt-rail-label">Logistics</span><span class="xt-rail-count" data-count="logistics"></span>
   </a>
-  <a class="xt-rail-item" href="/trade/port" data-tab="port" title="Port / Terminal" {"aria-current=\"page\"" if active_tab == "port" else ""}>
+  <a class="xt-rail-item" href="/trade/port" data-tab="port" title="Port / Terminal" {cur("port")}>
     {ic("port")}<span class="xt-rail-label">Port / Terminal</span><span class="xt-rail-count" data-count="port"></span>
   </a>
-  <a class="xt-rail-item" href="/trade/buy" data-tab="buy" title="Buyer" {"aria-current=\"page\"" if active_tab == "buy" else ""}>
+  <a class="xt-rail-item" href="/trade/buy" data-tab="buy" title="Buyer" {cur("buy")}>
     {ic("buy")}<span class="xt-rail-label">Buyer</span><span class="xt-rail-count" data-count="buy"></span>
   </a>
   <div class="xt-rail-group">Public</div>
   <div class="xt-rail-sep"></div>
-  <a class="xt-rail-item" href="/trace" data-tab="verify" title="Verify" {"aria-current=\"page\"" if active_tab == "verify" else ""}>
+  <a class="xt-rail-item" href="/trace" data-tab="verify" title="Verify" {cur("verify")}>
     {ic("verify")}<span class="xt-rail-label">Verify</span>
   </a>
-  <a class="xt-rail-item" href="/chain" data-tab="chain" title="Chain explorer" {"aria-current=\"page\"" if active_tab == "chain" else ""}>
+  <a class="xt-rail-item" href="/chain" data-tab="chain" title="Chain explorer" {cur("chain")}>
     {ic("chain")}<span class="xt-rail-label">Chain explorer</span>
   </a>
   <div class="xt-rail-foot">ALU Capstone 2026</div>
@@ -934,6 +963,14 @@ class AXKHandler(http.server.SimpleHTTPRequestHandler):
             return
 
         lot = format_lot_detail(row)
+        qc = lot["quality_criteria"]
+        limits_text = f"Grade {qc['min_grade']} or better · at least {qc['min_quantity_kg']:,.0f} kg" + (
+            f" · moisture at most {qc['max_moisture_pct']:g}%" if qc["max_moisture_pct"] is not None else "")
+        checks_html = ""
+        if lot["quality_checks"]:
+            items = "<br>".join(("✓ " if c["ok"] else "✕ ") + c["message"][:1].upper() + c["message"][1:]
+                                for c in lot["quality_checks"])
+            checks_html = f"<dt>Checks</dt><dd>{items}</dd>"
         host = self.headers.get("Host", f"localhost:{PORT}")
         share_url = f"http://{host}/trace/lot?ref={urllib.parse.quote(ref)}"
         qr_svg_html = generate_qr_svg(share_url)
@@ -1009,6 +1046,8 @@ class AXKHandler(http.server.SimpleHTTPRequestHandler):
           <dl class="xt-kv">
             <dt>Declared</dt><dd>Grade {lot["declared_grade"]} · {lot["quantity_kg"]:,.0f} kg</dd>
             <dt>Inspected</dt><dd>Grade {lot["inspected_grade"] or "—"} · {lot["inspected_quantity_kg"] or 0:,.0f} kg · {lot["moisture_pct"] or 0}% moisture</dd>
+            <dt>Agreed limits</dt><dd>{limits_text}</dd>
+            {checks_html}
             {f'<dt>Carrier</dt><dd>{lot["carrier_name"]} ({lot["vehicle_plate"]})</dd>' if lot["carrier_name"] else ''}
             {f'<dt>Container Seal</dt><dd class="xt-mono">{lot["seal_number"]} (verified intact ✓)</dd>' if lot["seal_number"] else ''}
             {f'<dt>Port Terminal</dt><dd>{lot["port_name"]} · {lot["container_id"]}</dd>' if lot["port_name"] else ''}
@@ -1207,12 +1246,18 @@ class AXKHandler(http.server.SimpleHTTPRequestHandler):
                 if not r:
                     self.send_json({"error": f"Lot '{name}' not found"}, status=404)
                     return
+                assessment = quality.assess(_criteria(r), grade, qty, moist)
+                if passed and not assessment.passed:
+                    self.send_json({"error": f"{r['lot_ref']} cannot pass: {assessment.summary()}. "
+                                             f"Reject it with the reason '{assessment.suggested_reason()}'."}, status=400)
+                    return
 
                 rep = {
                     "chain_lot_id": r["chain_lot_id"], "grade": grade, "inspected_at": now,
                     "inspector": PERSONAS["inspector"]["address"], "lot_ref": r["lot_ref"],
                     "moisture_pct": moist, "notes": notes, "passed": bool(passed),
-                    "quantity_kg": qty, "reject_reason": reject_reason if not passed else None
+                    "quantity_kg": qty, "reject_reason": reject_reason if not passed else None,
+                    "criteria": _criteria(r).to_dict(), "checks": assessment.to_list(),
                 }
                 report_record = canonical(rep)
                 report_digest = sha256_hex(report_record)

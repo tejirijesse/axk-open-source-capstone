@@ -435,9 +435,20 @@
       bigStrip(l.txs, { key: l.name, compact: true, failed: l.status === "Rejected" }),
       kv([["Commodity", l.commodity + " · " + kg(l.inspected_quantity_kg || l.quantity_kg)], ["Origin", l.origin]])];
   }
+  // What the lot was checked against and, once inspected, the result of each check as signed in the report.
+  function qualityBlock(l) {
+    if (l.quality_checks && l.quality_checks.length) {
+      var box = el("div", { class: "xt-quality" }, el("div", { class: "xt-small", text: "Inspection checks (signed in the report)" }));
+      l.quality_checks.forEach(function (c) { box.append(check(c.ok, c.message.charAt(0).toUpperCase() + c.message.slice(1))); });
+      return box;
+    }
+    if (l.quality_criteria && l.status === "Registered")
+      return el("div", {}, el("div", { class: "xt-small", text: "Agreed limits for inspection" }), kv(criteriaLines(l.quality_criteria)));
+    return null;
+  }
   function summaryDocket(l) {
     return docketShell("aside", "Lot " + l.status.toLowerCase(), [
-      lotHeader(l), el("div", {}, tag(l.status)), el("p", { class: "xt-small", text: nextAction(l) })],
+      lotHeader(l), el("div", {}, tag(l.status)), el("p", { class: "xt-small", text: nextAction(l) }), qualityBlock(l)],
       [el("a", { class: "xt-btn secondary block", href: lotLink(l) }, "Open lot", icon("arrow-right", 16))]);
   }
   // Wraps an action: busy button, signing overlay, inline docket error, stamp-in on refresh.
@@ -666,6 +677,28 @@
     return card;
   }
 
+  // Quality criteria (ledger/quality.py): the limits fixed when the lot was registered. The server makes the
+  // same check and refuses a pass outside them; this copy only shows the inspector the result as they type.
+  var GRADE_ORDER = ["A", "B", "C"];
+  function assessQuality(c, grade, qty, moist) {
+    if (!c) return [];
+    var out = [];
+    var gOk = GRADE_ORDER.indexOf(grade) >= 0 && GRADE_ORDER.indexOf(grade) <= GRADE_ORDER.indexOf(c.min_grade);
+    out.push({ ok: gOk, reason: "Grade below declared", text: "Grade " + (grade || "?") + (gOk ? " meets " : " is below ") + c.min_grade });
+    var q = parseFloat(qty), qOk = q >= c.min_quantity_kg;
+    out.push({ ok: qOk, reason: "Weight below declared", text: (isNaN(q) ? "?" : q.toLocaleString()) + " kg " + (qOk ? "is at least " : "is below ") + c.min_quantity_kg.toLocaleString() + " kg (declared less " + c.quantity_tolerance_pct + "%)" });
+    if (c.max_moisture_pct != null) {
+      var m = moist === "" || moist == null ? NaN : parseFloat(moist), mOk = !isNaN(m) && m <= c.max_moisture_pct;
+      out.push({ ok: mOk, reason: "Moisture above tolerance", text: isNaN(m) ? "Moisture not measured (limit " + c.max_moisture_pct + "%)" : "Moisture " + m + "% " + (mOk ? "is within " : "is above ") + "the " + c.max_moisture_pct + "% limit" });
+    }
+    return out;
+  }
+  function criteriaLines(c) {
+    if (!c) return [];
+    return [["Minimum grade", c.min_grade + " or better"], ["Minimum weight", c.min_quantity_kg.toLocaleString() + " kg (declared less " + c.quantity_tolerance_pct + "%)"],
+      ["Maximum moisture", c.max_moisture_pct == null ? "Not checked for this commodity" : c.max_moisture_pct + "%"]];
+  }
+
   function inspectionDocket(l) {
     var grade = seg("i-grade", "Measured grade", ["A", "B", "C"], l.declared_grade);
     var qty = input("i-qty", { type: "number", min: "1", step: "1", value: String(Math.round(l.quantity_kg)), required: true, inputmode: "numeric" });
@@ -679,6 +712,19 @@
     var pass = el("button", { class: "xt-btn", type: "submit", text: "Pass lot" });
     var rej = el("button", { class: "xt-btn danger", type: "button", text: "Reject lot" });
     var foot = el("div", { class: "xt-actions two" }, pass, rej);
+    var crit = l.quality_criteria;
+    var checksBox = el("div", { class: "xt-quality", "aria-live": "polite" });
+    var current = [];
+    var recheck = function () {
+      current = assessQuality(crit, grade.value, qty.value, moisture.value);
+      var failed = current.filter(function (c) { return !c.ok; });
+      checksBox.replaceChildren(el("div", { class: "xt-small", text: failed.length ? "Outside the agreed limits: this lot cannot pass." : "Within every agreed limit. Pass, or reject for a defect the numbers do not show." }));
+      current.forEach(function (c) { checksBox.append(check(c.ok, c.text)); });
+      pass.disabled = failed.length > 0;
+      if (failed.length && !reason.value) reason.value = failed[0].reason;
+    };
+    [qty, moisture].forEach(function (n) { n.addEventListener("input", recheck); });
+    grade.addEventListener("change", recheck);
     var run = function (ok, btn) {
       if (!validate([fQty])) return;
       reasonField.setErr(null);
@@ -695,15 +741,20 @@
     };
     rej.addEventListener("click", function () { run(false, rej); });
     decideHook = function (v) { if (v === "Pass") pass.focus(); else { reasonField.hidden = false; reason.focus(); } };
-    return docketShell("form", "Inspect " + l.commodity, [
+    var shell = docketShell("form", "Inspect " + l.commodity, [
       lotHeader(l),
       el("div", { class: "xt-small xt-muted", text: l.cooperative_name + " · declared grade " + l.declared_grade + " · " + kg(l.quantity_kg) }),
+      crit ? el("div", { class: "xt-small xt-section-gap", text: "Agreed limits (fixed at registration)" }) : null,
+      crit ? kv(criteriaLines(crit)) : null,
       segField("Measured grade", grade),
       el("div", { class: "xt-row" }, fQty, field("Moisture (%)", moisture)),
+      crit ? checksBox : null,
       field("Notes", notes, "Hashed into the report digest; not written to the ledger in plain text."),
       reasonField],
       [err, foot, el("div", { class: "xt-signs", text: signsLine("inspect", "the lot registry", "inspector") })],
-      { on: { submit: function (e) { e.preventDefault(); run(true, pass); } } });
+      { on: { submit: function (e) { e.preventDefault(); if (!pass.disabled) run(true, pass); } } });
+    if (crit) recheck();
+    return shell;
   }
 
   // ---------------------------------------------------------------- logistics
@@ -825,6 +876,7 @@
     return docketShell("form", "Fund escrow", [lotHeader(l),
       kv([["Grade", l.inspected_grade + (l.inspected_grade !== l.declared_grade ? " (declared " + l.declared_grade + ")" : "")], ["Moisture", l.moisture_pct != null ? nf1.format(l.moisture_pct) + "%" : null],
         ["Seller", l.cooperative_name], ["Inspector", l.inspector_name || "An authorised inspector"], ["Price per kg", perKg ? rwf(perKg) : null]]),
+      qualityBlock(l),
       fAmount,
       el("div", { class: "xt-small" }, el("a", { href: shareLink(l), target: "_blank", rel: "noopener" }, "Public verification page ", icon("arrow-up-right", 12)))],
       [err, submit, el("div", { class: "xt-signs", text: signsLine("fund", "the escrow contract", "buyer") })],

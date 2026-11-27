@@ -541,3 +541,8 @@ button { font-family: inherit; }
 @media (max-width: 900px) {
   .xt-strip-lg:not(.is-compact) .xt-cell .xt-lbl { display: none; }
 }
+
+/* Quality checks on the inspector screen: the lot's agreed limits against what was measured. */
+.xt-quality { background: var(--sunk); border-radius: var(--r-control); padding: 10px 12px; }
+.xt-quality .xt-check:first-of-type { margin-top: 6px; }
+.xt-btn[disabled] { opacity: .45; cursor: not-allowed; }
