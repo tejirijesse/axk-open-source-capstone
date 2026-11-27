@@ -7,10 +7,12 @@ notes, and anything about individual farmers.
 """
 
 import io
+import json
 
 import frappe
 
 from axk_capstone import chain
+from axk_capstone.ledger.workflow import TradeWorkflow
 
 DT = "AXK Chain Trade"
 PUBLIC_FIELDS = ["name", "lot_ref", "status", "commodity", "declared_grade", "quantity_kg", "origin",
@@ -23,7 +25,7 @@ PUBLIC_FIELDS = ["name", "lot_ref", "status", "commodity", "declared_grade", "qu
                  "port_tx", "port_received_at",
                  "buyer_account", "amount_rwf", "trade_id", "fund_tx", "funded_at", "release_tx",
                  "split_tx", "distribute_tx", "attest_digest", "attest_tx", "settled_at",
-                 "registry", "escrow", "splitter", "attestation", "token"]
+                 "registry", "escrow", "splitter", "attestation", "token", "quality_criteria", "quality_checks"]
 TX_FIELDS = ["register_tx", "inspect_tx", "fund_tx", "dispatch_tx", "port_tx", "release_tx", "split_tx", "distribute_tx", "attest_tx"]
 
 
@@ -64,6 +66,9 @@ def public_lot(ref):
     ]
     d.steps = [{"label": l, "tx": t, "url": chain.tx_url(t), "at": a} for l, t, a in steps]
     d.explorer = chain.EXPLORER
+    # The limits the lot was inspected against and each check's result (no personal data).
+    d.quality_criteria = TradeWorkflow.criteria_for(d).to_dict()
+    d.quality_checks = json.loads(d.quality_checks) if d.quality_checks else []
     return d
 
 

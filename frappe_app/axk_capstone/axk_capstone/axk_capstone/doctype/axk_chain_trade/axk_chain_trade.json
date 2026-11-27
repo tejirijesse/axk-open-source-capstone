@@ -93,6 +93,12 @@
    "read_only": 1
   },
   {
+   "fieldname": "quality_criteria",
+   "fieldtype": "Long Text",
+   "label": "Quality criteria (agreed limits, JSON)",
+   "read_only": 1
+  },
+  {
    "fieldname": "lot_digest",
    "fieldtype": "Data",
    "label": "Lot digest (sha256)",
@@ -171,6 +177,12 @@
    "fieldname": "reject_reason",
    "fieldtype": "Data",
    "label": "Rejection reason",
+   "read_only": 1
+  },
+  {
+   "fieldname": "quality_checks",
+   "fieldtype": "Long Text",
+   "label": "Quality checks (JSON)",
    "read_only": 1
   },
   {

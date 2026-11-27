@@ -7,10 +7,12 @@ the record's digest on-chain through the contract clients, and only then updates
 refused, ChainError propagates and the trade is left as it was: a hash is never recorded unless it is on-chain.
 """
 
+import json
 from datetime import timedelta
 
 from .contracts import ChainError
-from .records import InspectionReport, LotRecord, PortReceipt, SettlementRecord, Waybill
+from .quality import QualityCriteria, assess
+from .records import InspectionReport, LotRecord, PortReceipt, SettlementRecord, Waybill, canonical
 
 # step -> states it may start from (None: no check, the step creates the trade)
 TRANSITIONS = {
@@ -83,6 +85,9 @@ class TradeWorkflow:
         self._require("register", trade)
         trade.cooperative_name = self.personas.name("coop")
         trade.cooperative_account = self.personas.address("coop")
+        # The agreed limits are fixed at registration and covered by the lot digest.
+        trade.quality_criteria = canonical(
+            QualityCriteria.for_lot(trade.commodity, trade.declared_grade, trade.quantity_kg).to_dict())
         record = LotRecord.from_trade(trade, cooperative=trade.cooperative_account)
         trade.lot_record, trade.lot_digest = record.canonical(), record.digest()
         trade.chain_lot_id, trade.register_tx = self.registry.register_lot(
@@ -91,14 +96,22 @@ class TradeWorkflow:
         trade.status = "Registered"
 
     def inspect(self, trade, passed, grade, quantity_kg, moisture_pct, notes, reject_reason=None, field_capture=None):
-        """An authorised inspector signs one pass/fail inspection. The registry refuses a second one."""
+        """An authorised inspector signs one pass/fail inspection. The registry refuses a second one.
+
+        The measurements are checked against the lot's quality criteria first. A pass that fails any check is
+        refused before anything is signed; a rejection is allowed either way, with a listed reason."""
         self._require("inspect", trade)
+        criteria = self.criteria_for(trade)
+        assessment = assess(criteria, grade, quantity_kg, moisture_pct)
+        if passed and not assessment.passed:
+            raise ChainError(f"{trade.lot_ref} cannot pass: {assessment.summary()}. "
+                             f"Reject it with the reason '{assessment.suggested_reason()}'.")
         trade.inspector_name = self.personas.name("inspector")
         trade.inspector_account = self.personas.address("inspector")
         report = InspectionReport.from_trade(
             trade, passed=passed, grade=grade, quantity_kg=quantity_kg, moisture_pct=moisture_pct, notes=notes,
             reject_reason=reject_reason, inspector=trade.inspector_account, inspected_at=str(self.clock()),
-            field_capture=field_capture)
+            field_capture=field_capture, criteria=criteria.to_dict(), checks=assessment.to_list())
         trade.report_record, trade.report_digest = report.canonical(), report.digest()
         trade.inspect_tx = self.registry.inspect(self._sign("inspector"), trade.chain_lot_id, passed, grade,
                                                  quantity_kg, trade.report_digest)
@@ -106,8 +119,17 @@ class TradeWorkflow:
         trade.inspected_grade, trade.inspected_quantity_kg = grade, quantity_kg
         trade.moisture_pct, trade.inspection_notes = moisture_pct, notes
         trade.reject_reason = None if passed else reject_reason
+        trade.quality_checks = canonical(assessment.to_list())
         trade.inspected_at = self.clock()
         trade.status = "Approved" if passed else "Rejected"
+
+    @staticmethod
+    def criteria_for(trade):
+        """The lot's agreed limits; lots registered before criteria existed get the commodity defaults."""
+        stored = getattr(trade, "quality_criteria", None)
+        if stored:
+            return QualityCriteria.from_dict(json.loads(stored) if isinstance(stored, str) else stored)
+        return QualityCriteria.for_lot(trade.commodity, trade.declared_grade, trade.quantity_kg)
 
     def fund(self, trade, amount_rwf, trade_id_seed):
         """The buyer locks payment in escrow. The escrow asks the registry who the payee is."""

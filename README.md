@@ -5,7 +5,7 @@ Capstone project, BSE Software Engineering (Low-Level / Blockchain track), Afric
 Oghenetejiri Jesse. Supervisor: Junior Turatsinze.
 
 ![License: MIT](https://img.shields.io/badge/license-MIT-166350)
-![Tests: 169 passing](https://img.shields.io/badge/tests-169%20passing-2cbf82)
+![Tests: 180 passing](https://img.shields.io/badge/tests-180%20passing-2cbf82)
 ![Network: Stellar testnet](https://img.shields.io/badge/network-Stellar%20testnet-0c3424)
 ![Frappe v15](https://img.shields.io/badge/Frappe-v15-166350)
 ![Soroban](https://img.shields.io/badge/contracts-Soroban%20(Rust)-0c3424)
@@ -35,12 +35,15 @@ from a QR code.
 
 - [Try it in two minutes](#try-it-in-two-minutes)
 - [How it works](#how-it-works)
+- [How a lot is verified, step by step](#how-a-lot-is-verified-step-by-step)
+- [How AXK differs from certification and inspection services](#how-axk-differs-from-certification-and-inspection-services)
 - [Screenshots](#screenshots)
 - [Results](#results)
 - [Features by role](#features-by-role)
 - [Architecture](#architecture)
 - [Technical requirements](#technical-requirements)
 - [Getting started](#getting-started)
+- [Troubleshooting](#troubleshooting)
 - [Testing](#testing)
 - [Repository layout](#repository-layout)
 - [Deployment](#deployment)
@@ -97,6 +100,69 @@ The dispatch and port attestations are currently signed by the AXK verifier key 
 and the seal match is an application check rather than a contract rule. Self-signing by carriers and ports is
 roadmap work (LOG-4, PORT-1). Full design: [docs/architecture.md](docs/architecture.md).
 
+## How a lot is verified, step by step
+
+This is the exact process the code runs, from the moment a lot is offered for sale to the moment the result
+reaches everyone involved.
+
+| Stage | Who | What is collected | What the system checks or decides | Who is told, and how |
+|---|---|---|---|---|
+| 1. Start: register the lot | Cooperative (`/trade/coop`) | Commodity, variety, declared grade, declared weight, origin, harvest date | Input is valid; the lot id is `sha256(cooperative, lot_ref)` so no one can register in another cooperative's name. The **agreed quality limits** for the lot are fixed now (table below) and included in the lot record | The lot record's SHA-256 digest is committed to the lot registry on Stellar. The lot appears in the inspector's queue and gets a QR code |
+| 2. Assign an inspector | Allow-listed inspector | | Only an inspector on the registry's allow-list can sign; a cooperative can never inspect its own lot | |
+| 3. Collect evidence | Inspector, on site (`/trade/inspect`) or offline in ODK Collect | Measured grade, measured weight (kg), moisture (%), sampling notes; for ODK, the original submission and its SHA-256 | The form refuses impossible values (weight above 0, moisture 0 to 40%) | |
+| 4. Decide pass or reject | System and inspector | | The system compares each measurement with the lot's agreed limits and shows the result as the inspector types. **A pass is refused if any limit is broken**, before anything is signed. The inspector may still reject a lot that meets every limit, for defects the numbers do not capture, and must choose one of six listed reasons | |
+| 5. Record the result | Inspector's key | | The inspection report (measurements, the limits, each check's result, verdict, reason) is hashed; the registry accepts **one** inspection per lot, ever | Status becomes Approved or Rejected; the transaction link is shown to the inspector |
+| 6. Gate the payment | Escrow contract | | The escrow asks the registry two things: *did this lot pass?* and *who owns it?* An uninspected or rejected lot is refused (error 10); the payee cannot be chosen by anyone | Buyers only ever see passed lots, with the limits and every check result |
+| 7. Communicate | Everyone | | | The cooperative and buyer screens show the checks; the public `/trace` page (no login, or scan the QR code) shows the verdict, the agreed limits, each check, the record digests and the transactions; a GS1 EPCIS 2.0 file can be downloaded |
+
+After inspection, custody continues the same way: the carrier dispatches under a seal (waybill digest attested),
+the port checks that the arriving seal matches the waybill (a mismatch raises a tamper alert and nothing is
+signed), and the buyer's delivery confirmation releases the escrow, splits the payment and attests a settlement
+record that links every earlier digest.
+
+### The quality criteria
+
+Each lot carries three limits, fixed at registration and covered by the lot's on-chain digest, so neither side
+can change them later ([ledger/quality.py](frappe_app/axk_capstone/axk_capstone/ledger/quality.py)):
+
+| Check | Rule | Reason given if it fails |
+|---|---|---|
+| Grade | Measured grade is the declared grade or better (A is best, C lowest) | Grade below declared |
+| Weight | Measured weight is at least the declared weight less 2% | Weight below declared |
+| Moisture | Measured moisture is at most the commodity's limit | Moisture above tolerance |
+
+| Commodity | Maximum moisture |
+|---|---|
+| Coffee (parchment) | 12.0% |
+| Maize (dry grain), Sorghum, Wheat | 13.5% |
+| Beans (dry), Rice (paddy) | 14.0% |
+| Cassava (dried chips) | 13.0% |
+| Irish Potato | not checked (fresh produce is judged on defects and weight) |
+
+These are configurable demonstration values in line with common East African trade practice. A real deployment
+replaces them with the standard named in the sales contract. The other listed rejection reasons (foreign matter
+or defects, pest or mould damage, documents missing or inconsistent) are the inspector's judgement and always
+need a stated reason.
+
+## How AXK differs from certification and inspection services
+
+| Existing mechanism | What it proves | What it leaves open |
+|---|---|---|
+| Certification schemes (Fairtrade, Rainforest Alliance, organic) | A producer or process meets a standard, audited periodically | Nothing about the particular shipment being sold |
+| Third-party pre-shipment inspection (SGS, Bureau Veritas, Intertek) | A specific lot was checked | A paper certificate, costly for small lots, with no link to payment |
+| National standards bodies and export permits (RSB, KEBS, UNBS) | Goods meet the rules to cross a border | Protects the regulator, not the buyer-seller deal |
+| **AXK** | **A specific lot met limits both sides agreed in advance** | |
+
+The gap AXK fills is a lot-specific inspection result that cannot be altered, that anyone can check from a QR
+code, and that controls the payment directly: escrow cannot release money for a lot that did not pass.
+
+- **For the buyer:** pay only for a lot that met the agreed limits, and check that without trusting the seller.
+- **For the seller:** the money is locked before the goods leave and is released on delivery; the public lot page
+  is portable proof of quality for other buyers and lenders.
+
+AXK complements these mechanisms rather than replacing them: a standards-body or inspection-company inspector can
+be the allow-listed inspector, and a certificate number can be recorded in the lot.
+
 ## Screenshots
 
 | | |
@@ -111,11 +177,11 @@ roadmap work (LOG-4, PORT-1). Full design: [docs/architecture.md](docs/architect
 
 ## Results
 
-Measured on 30 and 31 October 2026. Raw outputs are in [docs/testing/](docs/testing/).
+Measured on 30 and 31 October 2026 (test counts updated 27 November 2026). Raw outputs are in [docs/testing/](docs/testing/).
 
 | Measure | Result |
 |---|---|
-| Automated tests | **169 passing** (65 contract, 22 ledger, 58 screens and logins, 8 EPCIS, 9 ODK, 7 end-to-end) |
+| Automated tests | **180 passing** (65 contract, 32 ledger, 58 screens and logins, 8 EPCIS, 9 ODK, 8 end-to-end) |
 | Trades on Stellar testnet | 15 lots: 6 settled, 3 rejected with a reason, 5 passed and awaiting a buyer, 1 awaiting inspection |
 | Registration to settlement | 74 to 236 seconds per settled lot; every record matched its on-chain digest |
 | One timed trade | 87.5 s end to end, of which settlement (4 transactions) 35.4 s |
@@ -186,55 +252,158 @@ The offline simulation needs only Python 3.10 or later.
 
 ## Getting started
 
-Two ways to run it. Only the full stack touches the blockchain.
+There are two ways to run AXK. Only the full stack touches the blockchain.
 
-| | Full stack (use this to evaluate) | Offline simulation |
+| | Offline simulation | Full stack (use this to evaluate) |
 |---|---|---|
-| Command | `make run-frappe` | `make run` |
-| Blockchain | Every action is a real Stellar testnet transaction | None; hashes are computed locally and labelled *simulated* |
-| Needs | Frappe v15 bench, MariaDB, Redis, Rust, stellar-cli | Python 3 only |
-| Good for | The real system; anything touching contracts or the ledger | A quick look at the screens; UI contributions |
+| Command | `make run` | `make run-frappe` |
+| Blockchain | None; hashes are computed locally and labelled *simulated* | Every action is a real Stellar testnet transaction |
+| Needs | Python 3.10 or later, nothing else | Frappe v15 bench, MariaDB 10.11, Redis, Node 18+, Rust, stellar-cli |
+| Time to set up | 2 minutes | About 45 minutes the first time |
+| Good for | A quick look at every screen; UI contributions | The real system; anything touching contracts or the ledger |
 
-### Full stack (Stellar testnet)
+If you only want to see it working, use the hosted system at **https://capstone.axk.org/login** (one-click demo
+logins) and skip installation entirely.
+
+### Option A: offline simulation (2 minutes)
 
 ```bash
-git clone https://github.com/tejirijesse/axk-open-source-capstone.git && cd axk-open-source-capstone
+git clone https://github.com/tejirijesse/axk-open-source-capstone.git
+cd axk-open-source-capstone
+python3 --version            # must be 3.10 or later
+make run                     # or: python3 scripts/server.py
+```
 
-# 1. contracts
-make toolchain          # rustup, wasm32v1-none, stellar-cli
-make test-contracts     # 65 tests
-make build
-make demo               # deploys fresh contracts and funded testnet accounts, runs one verified trade
+Open http://localhost:8000/trade. The same screens, the same quality rule and seeded sample lots; nothing is
+signed, and every page says so. Stop it with Ctrl+C. To start from fresh sample data, delete `scripts/axk.db`.
 
-# 2. a Frappe v15 bench (once): https://frappeframework.com/docs/user/en/installation
-#    bench init axk-bench --frappe-branch version-15 && cd axk-bench
-#    bench new-site axk.localhost && bench use axk.localhost
-#    The Makefile expects the bench at ../axk-bench; otherwise add BENCH=/path/to/axk-bench to each make command.
+### Option B: full stack on Stellar testnet
 
-# 3. the app, pointed at the contracts from `make demo`
-make install-app
-make contracts-config
-bench --site axk.localhost set-config axk_demo_mode 1     # local development only
+Every command below is meant to be run in order. Tested on macOS 15 (Apple silicon) and Ubuntu 24.04.
 
-# optional: one demo login per role (created on migrate; needs a password of 8+ characters)
-bench --site axk.localhost set-config axk_demo_password '<your password>'
+#### 1. Install the system packages
+
+macOS (Homebrew):
+
+```bash
+brew install git python@3.11 pipx mariadb@10.11 redis node@18 rustup stellar-cli
+brew services start mariadb@10.11
+brew services start redis
+npm install -g yarn
+rustup default stable
+rustup target add wasm32v1-none
+```
+
+Ubuntu 24.04:
+
+```bash
+sudo apt update
+sudo apt install -y git python3-dev python3-venv python3-pip pipx mariadb-server mariadb-client \
+  redis-server libmariadb-dev pkg-config build-essential curl
+curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash - && sudo apt install -y nodejs
+sudo npm install -g yarn
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y && source "$HOME/.cargo/env"
+rustup target add wasm32v1-none
+cargo install --locked stellar-cli@28.0.0
+```
+
+Check: `python3 --version` (3.10 or later; 3.11 is the tested version), `node --version` (18 or later),
+`stellar --version` (28.x), `cargo --version`.
+
+#### 2. Configure MariaDB for Frappe
+
+Frappe needs the utf8mb4 character set. Add this to the MariaDB configuration (macOS:
+`/opt/homebrew/etc/my.cnf`; Ubuntu: `/etc/mysql/my.cnf`), then restart MariaDB
+(`brew services restart mariadb@10.11` or `sudo systemctl restart mariadb`):
+
+```ini
+[mysqld]
+character-set-client-handshake = FALSE
+character-set-server = utf8mb4
+collation-server = utf8mb4_unicode_ci
+
+[mysql]
+default-character-set = utf8mb4
+```
+
+Give the MariaDB root user a password if it has none (`sudo mariadb-secure-installation` on Ubuntu;
+`mariadb -u root` then `ALTER USER 'root'@'localhost' IDENTIFIED BY '<password>';` on macOS). Bench asks for it
+once, when it creates the site.
+
+#### 3. Clone the repository and build the contracts
+
+```bash
+git clone https://github.com/tejirijesse/axk-open-source-capstone.git
+cd axk-open-source-capstone
+make test-contracts     # 65 contract tests
+make build              # four contracts to wasm
+make demo               # creates funded testnet accounts, deploys fresh contracts and runs one verified trade
+```
+
+`make demo` creates the stellar-cli identities `axk-coop`, `axk-inspector`, `axk-buyer`, `axk-verifier`, and
+the others, funds them from the testnet friendbot, deploys the lot registry, escrow, splitter and attestation
+contracts, issues a 250,000 RWF test balance to the buyer and prints a transaction link for every step. The
+contract ids are saved in `scripts/.demo-state.env` (not committed). It needs an internet connection and takes
+2 to 4 minutes.
+
+#### 4. Create a Frappe bench next to the repository
+
+The Makefile expects the bench at `../axk-bench` (beside the repository folder). To put it elsewhere, add
+`BENCH=/path/to/axk-bench` to every `make` command below.
+
+```bash
+cd ..
+pipx install frappe-bench            # provides the `bench` command (version 5.x); then open a new terminal
+bench init axk-bench --frappe-branch version-15
+cd axk-bench
+bench new-site axk.localhost         # asks for the MariaDB root password and a new Administrator password
+bench use axk.localhost
+cd ../axk-open-source-capstone
+```
+
+#### 5. Install the app and point it at your contracts
+
+```bash
+make install-app          # links frappe_app/axk_capstone into the bench, installs it, builds its assets
+make contracts-config     # writes the contract ids from step 3 into the site config
+cd ../axk-bench
+bench --site axk.localhost set-config axk_demo_mode 1                       # local development only
+bench --site axk.localhost set-config axk_demo_password '<8+ characters>'  # optional: one demo login per role
 bench --site axk.localhost migrate
-
-# 4. run
-make run-frappe         # http://localhost:8000/trade
-make check-env          # in a second terminal: toolchain, MariaDB, Redis, server, contracts, testnet
+cd ../axk-open-source-capstone
 ```
 
 Demo mode lets the screens sign without logging in, **only for requests made directly on your own machine**;
 anything arriving through a proxy or tunnel is refused. Turn it off on any shared host.
 
-### Offline simulation (no blockchain)
+#### 6. Run it
 
 ```bash
-make run                # or: python3 scripts/server.py, then open http://localhost:8000/trade
+make run-frappe           # web server, workers and assets; leave this terminal open
 ```
 
-The same screens with locally generated sample data. It signs nothing and says so on every page.
+In a second terminal:
+
+```bash
+make check-env            # every line should be a green tick, ending "Environment ready."
+```
+
+Open http://localhost:8000/trade (Safari does not resolve `*.localhost`; use `localhost`, as here). Stop the
+server with Ctrl+C in its terminal.
+
+#### 7. Walk one lot through the system
+
+1. **Cooperative** (`/trade/coop`): register a Coffee lot of 1,000 kg, grade A. Note the agreed limits shown
+   for it: grade A or better, at least 980 kg, moisture at most 12%.
+2. **Inspector** (`/trade/inspect`): select the lot. Type a moisture of 13.2%: the checklist turns red and
+   *Pass lot* is disabled. Change it to 11.5% and pass the lot. A transaction link appears.
+3. **Buyer** (`/trade/buy`): the lot is now listed with its check results. Fund the escrow.
+4. **Logistics** (`/trade/logistics`): dispatch with a seal number. **Port** (`/trade/port`): enter the same seal
+   (a different seal raises a tamper alert).
+5. **Buyer**: confirm delivery. The escrow releases, the payment is split 40/40/20 and the settlement is attested.
+6. **Anyone** (`/trace`): look up the lot or scan its QR code. All nine custody steps show a real transaction.
+
+`make show-db` prints the five newest trades as stored in MariaDB, with their transaction hashes.
 
 ### Pages
 
@@ -247,8 +416,22 @@ The same screens with locally generated sample data. It signs nothing and says s
 | Lot detail | `/trade/lot?name=<lot>` |
 | Public verification (no login) | `/trace`, `/trace/lot?ref=<lot>` |
 | Chain explorer | `/chain` |
+| Privacy policy | `/privacy` |
 
-Safari does not resolve `*.localhost`; use `http://localhost:8000`.
+## Troubleshooting
+
+| Symptom | Cause and fix |
+|---|---|
+| `make run-frappe` says *already running* | Another copy is running. Stop it with Ctrl+C in its terminal, or `pkill -f 'honcho start'`, then start again |
+| *Address already in use* on port 8000 | Something else uses the port: `lsof -iTCP:8000 -sTCP:LISTEN` shows what |
+| `make check-env` shows a red MariaDB or Redis line | Start them: `brew services start mariadb@10.11 redis` (macOS) or `sudo systemctl start mariadb redis-server` (Ubuntu) |
+| *axk_stellar site config is missing ...* | Run `make demo` then `make contracts-config` (step 3 and 5) |
+| *Too many transactions this hour* | Each user may sign 30 transactions an hour. Wait, or on your own machine clear the counter: `redis-cli -p 13000 --scan --pattern '*axk_capstone:signs*' \| xargs redis-cli -p 13000 del` |
+| *The buyer holds ... RWF, less than ...* | The buyer's test balance is spent. Run `make demo` again (new contracts and a fresh 250,000 RWF), then `make contracts-config` |
+| *cannot pass: moisture ... is above the ...% limit* | Working as designed: the measurement breaks the lot's agreed limits. Reject the lot with the suggested reason, or correct the measurement |
+| Contract calls fail after weeks of working | Stellar testnet is reset from time to time, which deletes accounts and contracts. Run `make demo` and `make contracts-config` again |
+| Pages look unstyled | Rebuild assets: `cd ../axk-bench && bench build --app axk_capstone` |
+| `bench new-site` fails on character set | Step 2 was skipped or MariaDB was not restarted |
 
 ## Testing
 
@@ -256,15 +439,26 @@ Safari does not resolve `*.localhost`; use `http://localhost:8000`.
 make test               # contracts, ledger, screens and logins, EPCIS, ODK, then end-to-end (needs a server on :8000)
 ```
 
+The end-to-end suite is written for the offline simulation, so run it against `make run`. Its quality test
+(`test_08`) also passes against the full stack, on testnet:
+
+```bash
+make run                # terminal 1: offline simulation
+make test-python        # terminal 2: all 8 end-to-end tests
+
+# against the full stack (make run-frappe running): the quality test, on testnet
+python3 scripts/test_trade.py TestAXKEndToEnd.test_08_quality_criteria_refuse_a_pass_outside_the_limits
+```
+
 | Suite | Tests | What it checks | Command |
 |---|---|---|---|
 | Smart contracts | 65 | Lot registry 18, escrow 27, splitter 12, attestation 8: write-once records, allow-listed inspectors, inspection gate, fixed payee, refund deadline, lossless split, typed errors | `make test-contracts` |
-| Ledger object model | 22 | Digest format unchanged, error tables, state machine refusals, resumable settlement, seal check, buyer balance check (stellar-cli replaced by a fake) | `make test-ledger` |
+| Ledger object model | 32 | Digest format unchanged, error tables, state machine refusals, resumable settlement, seal check, buyer balance check, quality criteria: limits per lot, each failed check names its reason, a pass outside the limits is refused before signing (stellar-cli replaced by a fake) | `make test-ledger` |
 | Custody strip and demo logins | 58 | Strip state from real hashes only (15), demo accounts, access blocks and open-redirect check (40), lot transaction fields (3) | `make test-custody test-demo` |
 | GS1 EPCIS export | 8 | EPCIS 2.0 structure, official JSON schema, no private fields | `make test-epcis` |
 | ODK offline inspection | 9 | Form, importer, ODK Central sync; one live test needs `AXK_ODK_LIVE=1` | `make test-odk` |
-| End-to-end | 7 | Full lifecycle, inspection rejection, seal tampering, invalid transitions, unknown lot, routes | `make test-python` |
-| **Total** | **169** | | `make test` |
+| End-to-end | 8 | Full lifecycle, inspection rejection, seal tampering, invalid transitions, unknown lot, routes, quality limits refuse a pass | `make test-python` |
+| **Total** | **180** | | `make test` |
 | Compatibility | 80 page loads | 3 browser engines x phone, tablet, desktop + slow-3G phone | `python3 scripts/test_compat.py` |
 | Performance | | Response times, timed testnet trade, memory, sizes | `AXK_PERF_TX=1 python3 scripts/measure_performance.py` |
 

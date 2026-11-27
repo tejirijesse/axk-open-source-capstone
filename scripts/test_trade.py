@@ -273,6 +273,30 @@ class TestAXKEndToEnd(unittest.TestCase):
             self.assertEqual(status, 200, f"Route {r} must return 200")
             self.assertIn("<html", html.lower(), f"Route {r} must render HTML")
 
+    def test_08_quality_criteria_refuse_a_pass_outside_the_limits(self):
+        """The panel's question: what exactly decides pass or fail. A coffee lot carries a 12% moisture limit."""
+        status, lot = post("register_lot", {
+            "commodity": "Coffee (parchment)", "quantity_kg": 1000.0, "declared_grade": "A",
+            "origin": "Huye, Rwanda"})
+        self.assertEqual(status, 200)
+        c = lot["quality_criteria"]
+        self.assertEqual((c["min_grade"], c["min_quantity_kg"], c["max_moisture_pct"]), ("A", 980.0, 12.0))
+
+        status, err = post("inspect_lot", {"name": lot["lot_ref"], "passed": 1, "grade": "A",
+                                           "quantity_kg": 995.0, "moisture_pct": 13.4})
+        self.assertIn(status, (400, 417), "a pass above the moisture limit must be refused")
+        # The simulation returns the reason in the body; Frappe returns it in _server_messages and keeps it on the lot.
+        _, after = get("lot", {"name": lot["lot_ref"]})
+        self.assertEqual(after["status"], "Registered", "nothing is signed when a check fails")
+        self.assertIn("13.4% is above the 12% limit", (err.get("error") or "") + (after.get("last_error") or ""))
+
+        status, lot = post("inspect_lot", {"name": lot["lot_ref"], "passed": 0, "grade": "A", "quantity_kg": 995.0,
+                                           "moisture_pct": 13.4, "reject_reason": "Moisture above tolerance"})
+        self.assertEqual(status, 200)
+        self.assertEqual(lot["status"], "Rejected")
+        self.assertEqual([x["ok"] for x in lot["quality_checks"]], [True, True, False])
+        self.assertIn("rejected at inspection", get_html("/trace/lot?ref=" + lot["lot_ref"])[1].lower())
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

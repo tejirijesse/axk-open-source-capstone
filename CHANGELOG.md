@@ -7,6 +7,16 @@ All notable changes to this project are recorded here. The format follows
 ## [Unreleased]
 
 ### Added
+- Quality criteria for inspection (defence feedback, 25 November 2026): each lot carries agreed limits fixed at
+  registration (minimum grade, minimum weight, maximum moisture per commodity) inside its lot digest; a pass that
+  breaks a limit is refused before signing; the report records each check; limits and results are shown on the
+  inspector, cooperative and buyer screens and on the public `/trace` page (`ledger/quality.py`).
+- Public privacy policy at `/privacy`, linked from every screen.
+- README: step-by-step verification workflow, comparison with certification and inspection services, full
+  install guide for macOS and Ubuntu, and a troubleshooting table.
+
+### Fixed
+- The offline simulation failed to start on Python 3.10 and 3.11 (backslashes inside f-string expressions).
 - Public demo of the offline simulation on Vercel (`api/index.py`, `vercel.json`, `.vercelignore`).
 - `make check-env` (one-screen environment check) and `make show-db` (latest trades as stored in MariaDB).
 - `odk/sample_submission.py` writes an ODK submission for any lot, for demos without a phone.

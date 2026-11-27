@@ -43,6 +43,8 @@
           <dl class="tr-kv">
             <dt>Declared</dt><dd>Grade {{ lot.declared_grade }} · {{ "{:,.0f}".format(lot.quantity_kg or 0) }} kg</dd>
             <dt>Inspected</dt><dd>{% if lot.inspect_tx %}Grade {{ lot.inspected_grade }} · {{ "{:,.0f}".format(lot.inspected_quantity_kg or 0) }} kg{% if lot.moisture_pct %} · {{ lot.moisture_pct }}% moisture{% endif %}{% else %}Not yet{% endif %}</dd>
+            {% set qc = lot.quality_criteria %}<dt>Agreed limits</dt><dd>Grade {{ qc.min_grade }} or better · at least {{ "{:,.0f}".format(qc.min_quantity_kg) }} kg{% if qc.max_moisture_pct is not none %} · moisture at most {{ "%g"|format(qc.max_moisture_pct) }}%{% endif %}</dd>
+            {% if lot.quality_checks %}<dt>Checks</dt><dd>{% for c in lot.quality_checks %}<span class="tr-inline">{{ icon("circle-check" if c.ok else "circle-x", 14) }}{{ c.message[:1]|upper }}{{ c.message[1:] }}</span>{% if not loop.last %}<br>{% endif %}{% endfor %}</dd>{% endif %}
             {% if lot.carrier_name %}<dt>Carrier</dt><dd>{{ lot.carrier_name }}{% if lot.vehicle_plate %} ({{ lot.vehicle_plate }}){% endif %}</dd>{% endif %}
             {% if lot.seal_number %}<dt>Seal</dt><dd><span class="tr-mono">{{ lot.seal_number }}</span>{% if lot.seal_verified %} · <span class="tr-inline">{{ icon("shield-check", 14) }}intact</span>{% endif %}</dd>{% endif %}
             {% if lot.port_name %}<dt>Port terminal</dt><dd>{{ lot.port_name }}{% if lot.container_id %} · {{ lot.container_id }}{% endif %}</dd>{% endif %}

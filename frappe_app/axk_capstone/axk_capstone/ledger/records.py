@@ -64,11 +64,16 @@ class LotRecord(CanonicalRecord):
 
     @classmethod
     def from_trade(cls, trade, cooperative):
-        return cls(
+        fields = dict(
             lot_ref=trade.lot_ref, commodity=trade.commodity, variety=trade.variety or "",
             declared_grade=trade.declared_grade, quantity_kg=trade.quantity_kg, origin=trade.origin,
             harvest_date=str(trade.harvest_date or ""), cooperative=cooperative,
         )
+        # Lots registered before quality criteria existed have none; their digest keeps the original format.
+        criteria = getattr(trade, "quality_criteria", None)
+        if criteria:
+            fields["quality_criteria"] = json.loads(criteria) if isinstance(criteria, str) else criteria
+        return cls(**fields)
 
     @staticmethod
     def registry_ref(trade):
@@ -77,11 +82,14 @@ class LotRecord(CanonicalRecord):
 
 
 class InspectionReport(CanonicalRecord):
-    """The inspector's signed result. field_capture links an offline (ODK) submission to the report."""
+    """The inspector's signed result. field_capture links an offline (ODK) submission to the report.
+
+    criteria and checks (when given) are the limits the lot was inspected against and the result of each check,
+    so the signed report shows not only the verdict but why it was reached."""
 
     @classmethod
     def from_trade(cls, trade, passed, grade, quantity_kg, moisture_pct, notes, reject_reason, inspector,
-                   inspected_at, field_capture=None):
+                   inspected_at, field_capture=None, criteria=None, checks=None):
         fields = dict(
             lot_ref=trade.lot_ref, chain_lot_id=trade.chain_lot_id, passed=bool(passed), grade=grade,
             quantity_kg=quantity_kg, moisture_pct=moisture_pct, notes=notes or "",
@@ -89,6 +97,9 @@ class InspectionReport(CanonicalRecord):
         )
         if field_capture:
             fields["field_capture"] = field_capture
+        if criteria is not None:
+            fields["criteria"] = criteria
+            fields["checks"] = checks or []
         return cls(**fields)
 
 

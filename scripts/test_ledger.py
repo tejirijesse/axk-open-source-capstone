@@ -22,6 +22,7 @@ from axk_capstone.ledger.records import (  # noqa: E402
     AttestedRecord, CanonicalRecord, InspectionReport, LotRecord, PortReceipt, SettlementRecord, Waybill,
     canonical, sha256_hex,
 )
+from axk_capstone.ledger.quality import QualityCriteria, assess  # noqa: E402
 from axk_capstone.ledger.workflow import TRANSITIONS, Personas, TradeWorkflow  # noqa: E402
 
 LOT_ID = "ab" * 32
@@ -218,7 +219,7 @@ class Workflow(unittest.TestCase):
         runner, t = FakeRunner(), new_trade()
         wf = make_workflow(runner)
         wf.register(t)
-        wf.inspect(t, True, "A", 1.0, 11.0, "")
+        wf.inspect(t, True, "A", 3820.0, 11.0, "")
         wf.fund(t, 1, "t")
         wf.dispatch(t, "C", "D", "P", "RW-SEAL-1", "KLP")
         before = len(runner.calls)
@@ -231,7 +232,7 @@ class Workflow(unittest.TestCase):
         runner, t = FakeRunner(), new_trade()
         wf = make_workflow(runner)
         wf.register(t)
-        wf.inspect(t, True, "A", 1.0, 11.0, "")
+        wf.inspect(t, True, "A", 3820.0, 11.0, "")
         runner.outputs["balance"] = '"2000010000000"'          # 200,001 RWF
         with self.assertRaisesRegex(ChainError, "holds 200,001 RWF, less than the 250,000 RWF"):
             wf.fund(t, 250000, "t")
@@ -244,7 +245,7 @@ class Workflow(unittest.TestCase):
         wf.register(t)
         runner.fail_with = ("inspect", "error: HostError: Error(Contract, #3)")
         with self.assertRaisesRegex(ChainError, "Not an authorised inspector"):
-            wf.inspect(t, True, "A", 1.0, 11.0, "")
+            wf.inspect(t, True, "A", 3820.0, 11.0, "")
         self.assertEqual(t.status, "Registered")
         self.assertIsNone(getattr(t, "inspect_tx", None))
 
@@ -252,7 +253,7 @@ class Workflow(unittest.TestCase):
         runner, t = FakeRunner(), new_trade()
         wf = make_workflow(runner)
         wf.register(t)
-        wf.inspect(t, True, "A", 1.0, 11.0, "")
+        wf.inspect(t, True, "A", 3820.0, 11.0, "")
         wf.fund(t, 1, "t")
         runner.fail_with = ("distribute", "error: network timeout")
         with self.assertRaises(ChainError):
@@ -269,6 +270,79 @@ class Workflow(unittest.TestCase):
         run_to_settlement(wf, t)
         self.assertEqual(wf.verify(t), {"lot_record": True, "waybill_record": True,
                                         "port_receipt_record": True, "settlement_record": True})
+
+
+class Quality(unittest.TestCase):
+    """The quality criteria a lot is inspected against (ledger/quality.py), answering the defence panel's
+    question of what exactly decides whether a lot meets the required standard."""
+
+    def coffee(self):
+        return QualityCriteria.for_lot("Coffee (parchment)", "A", 3850.0)
+
+    def test_limits_come_from_the_commodity_and_the_declaration(self):
+        c = self.coffee()
+        self.assertEqual((c.min_grade, c.max_moisture_pct, c.min_quantity_kg), ("A", 12.0, 3773.0))
+        self.assertIsNone(QualityCriteria.for_lot("Irish Potato", "B", 100).max_moisture_pct)
+
+    def test_measurements_within_every_limit_pass(self):
+        a = assess(self.coffee(), "A", 3820.0, 11.5)
+        self.assertTrue(a.passed)
+        self.assertEqual([x["check"] for x in a.checks], ["grade", "quantity", "moisture"])
+        self.assertIsNone(a.suggested_reason())
+
+    def test_each_failed_check_names_its_listed_reason(self):
+        cases = {("B", 3820.0, 11.5): "Grade below declared", ("A", 3700.0, 11.5): "Weight below declared",
+                 ("A", 3820.0, 12.4): "Moisture above tolerance", ("A", 3820.0, None): "Moisture above tolerance"}
+        for (grade, qty, moist), reason in cases.items():
+            a = assess(self.coffee(), grade, qty, moist)
+            self.assertFalse(a.passed, (grade, qty, moist))
+            self.assertEqual(a.suggested_reason(), reason)
+
+    def test_limits_are_inclusive_and_a_better_grade_passes(self):
+        self.assertTrue(assess(self.coffee(), "A", 3773.0, 12.0).passed)
+        self.assertTrue(assess(QualityCriteria.for_lot("Maize (dry grain)", "B", 1000), "A", 990, 13.0).passed)
+
+    def test_criteria_round_trip(self):
+        c = self.coffee()
+        self.assertEqual(QualityCriteria.from_dict(json.loads(canonical(c.to_dict()))), c)
+
+    def test_registration_fixes_the_criteria_inside_the_lot_digest(self):
+        wf, t = make_workflow(FakeRunner()), new_trade()
+        wf.register(t)
+        record = json.loads(t.lot_record)
+        self.assertEqual(record["quality_criteria"]["max_moisture_pct"], 12.0)
+        self.assertEqual(record["quality_criteria"]["min_quantity_kg"], 3773.0)
+
+    def test_a_pass_outside_the_limits_is_refused_before_signing(self):
+        runner, t = FakeRunner(), new_trade()
+        wf = make_workflow(runner)
+        wf.register(t)
+        with self.assertRaisesRegex(ChainError, "moisture 13.1% is above the 12% limit"):
+            wf.inspect(t, True, "A", 3820.0, 13.1, "")
+        self.assertEqual(t.status, "Registered")
+        self.assertNotIn("inspect", runner.functions(), "nothing is signed when a check fails")
+
+    def test_report_records_the_criteria_and_every_check(self):
+        wf, t = make_workflow(FakeRunner()), new_trade()
+        wf.register(t)
+        wf.inspect(t, True, "A", 3820.0, 11.5, "sampled 5 bags")
+        report = json.loads(t.report_record)
+        self.assertEqual(report["criteria"]["min_grade"], "A")
+        self.assertTrue(all(c["ok"] for c in report["checks"]))
+        self.assertEqual(len(json.loads(t.quality_checks)), 3)
+
+    def test_inspector_may_reject_a_lot_that_meets_the_numbers(self):
+        wf, t = make_workflow(FakeRunner()), new_trade()
+        wf.register(t)
+        wf.inspect(t, False, "A", 3820.0, 11.5, "live weevils in 2 of 5 bags", reject_reason="Pest or mould damage")
+        self.assertEqual(t.status, "Rejected")
+        self.assertTrue(all(c["ok"] for c in json.loads(t.report_record)["checks"]))
+
+    def test_lots_registered_before_criteria_still_verify(self):
+        """Older lots have no criteria in their record: their digest format is unchanged."""
+        t = new_trade()
+        self.assertNotIn("quality_criteria", LotRecord.from_trade(t, cooperative="GCOOP").fields)
+        self.assertEqual(TradeWorkflow.criteria_for(t).max_moisture_pct, 12.0)
 
 
 if __name__ == "__main__":
